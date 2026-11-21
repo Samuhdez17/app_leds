@@ -339,7 +339,7 @@
 				en,
 				Base,
 			);
-			mainGroup = 10000088 /* SiriLEDController */;
+			mainGroup = 10000068 /* SiriLEDController */;
 			productRefGroup = 10000067 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
