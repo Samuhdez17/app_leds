@@ -1,0 +1,715 @@
+{
+  "feature": "siri-led-controller",
+  "created": "2026-11-21T00:00:00Z",
+  "totalCheckpoints": 9,
+  "totalTestCases": 87,
+  "layers": ["unit", "api", "ui-e2e"],
+  "checkpoints": [
+    {
+      "checkpointId": 1,
+      "title": "Xcode Project Setup",
+      "testCases": [
+        {
+          "id": "tc-1-1",
+          "layer": "unit",
+          "name": "Project builds for iPhone target",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' build",
+          "expect": "Build succeeds with zero errors and zero warnings"
+        },
+        {
+          "id": "tc-1-2",
+          "layer": "unit",
+          "name": "Project builds for Watch target",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' build",
+          "expect": "Build succeeds with zero errors and zero warnings"
+        },
+        {
+          "id": "tc-1-3",
+          "layer": "unit",
+          "name": "Project builds for Widget target",
+          "command": "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' build",
+          "expect": "Build succeeds with zero errors and zero warnings"
+        },
+        {
+          "id": "tc-1-4",
+          "layer": "unit",
+          "name": "LEDCore framework compiles and is accessible",
+          "command": "xcodebuild -scheme LEDCore -destination 'platform=iOS Simulator,name=iPhone 15' build",
+          "expect": "Shared framework builds and exports all public symbols"
+        },
+        {
+          "id": "tc-1-5",
+          "layer": "api",
+          "name": "Entitlements contain required capabilities",
+          "command": "codesign -d --entitlements :- <built-app> | grep -E 'bluetooth-central|background-modes|app-intents'",
+          "expect": "All three capabilities present in entitlements"
+        },
+        {
+          "id": "tc-1-6",
+          "layer": "api",
+          "name": "SwiftData model container initializes",
+          "command": "swift test --filter PersistenceTests/testModelContainerInitialization",
+          "expect": "ModelContainer creates without error for in-memory and on-disk stores"
+        }
+      ]
+    },
+    {
+      "checkpointId": 2,
+      "title": "Data Models + SwiftData Stack",
+      "testCases": [
+        {
+          "id": "tc-2-1",
+          "layer": "unit",
+          "name": "LEDDevice model creates with all properties",
+          "command": "swift test --filter ModelsTests/testLEDDeviceCreation",
+          "expect": "Device creates with id, name, room, serviceUUID, characteristicUUID, isConnected, lastKnownState, createdAt, updatedAt"
+        },
+        {
+          "id": "tc-2-2",
+          "layer": "unit",
+          "name": "WeeklySchedule model creates with all properties",
+          "command": "swift test --filter ModelsTests/testWeeklyScheduleCreation",
+          "expect": "Schedule creates with id, device relationship, name, weekdaysOn/Off, weekendOn/Off, targetColor, targetIntensity, targetColorTemp, isEnabled, createdAt, updatedAt"
+        },
+        {
+          "id": "tc-2-3",
+          "layer": "unit",
+          "name": "LEDDevice ↔ WeeklySchedule relationship works",
+          "command": "swift test --filter ModelsTests/testDeviceScheduleRelationship",
+          "expect": "Device.schedules returns correct schedules; schedule.device returns correct device; cascade delete works"
+        },
+        {
+          "id": "tc-2-4",
+          "layer": "unit",
+          "name": "ColorState encodes/decodes RGBCCT 5-channel data",
+          "command": "swift test --filter ModelsTests/testColorStateEncoding",
+          "expect": "RGBCCT Data(round-trip) preserves R,G,B,WW,CW each 0-255"
+        },
+        {
+          "id": "tc-2-5",
+          "layer": "unit",
+          "name": "SwiftData ModelContainer initializes for previews (in-memory)",
+          "command": "swift test --filter PersistenceTests/testPreviewContainer",
+          "expect": "In-memory container creates and supports CRUD without persisting to disk"
+        },
+        {
+          "id": "tc-2-6",
+          "layer": "unit",
+          "name": "SwiftData ModelContainer initializes for app (on-disk)",
+          "command": "swift test --filter PersistenceTests/testAppContainer",
+          "expect": "On-disk container creates at correct path, supports migrations placeholder"
+        },
+        {
+          "id": "tc-2-7",
+          "layer": "unit",
+          "name": "Preview data factory produces valid mock devices/schedules",
+          "command": "swift test --filter ModelsTests/testPreviewDataFactory",
+          "expect": "Factory returns devices with varied states and schedules with all weekday/weekend combinations"
+        }
+      ]
+    },
+    {
+      "checkpointId": 3,
+      "title": "BLEManager Actor + LEDCommandEncoder",
+      "testCases": [
+        {
+          "id": "tc-3-1",
+          "layer": "unit",
+          "name": "LEDCommandEncoder encodes power on/off",
+          "command": "swift test --filter LEDCommandEncoderTests/testEncodePower",
+          "expect": "encodePower(true) and encodePower(false) produce expected byte arrays for placeholder protocol"
+        },
+        {
+          "id": "tc-3-2",
+          "layer": "unit",
+          "name": "LEDCommandEncoder encodes RGB color",
+          "command": "swift test --filter LEDCommandEncoderTests/testEncodeColor",
+          "expect": "encodeColor(r:g:b:ww:cw:) produces 5-byte array matching placeholder protocol"
+        },
+        {
+          "id": "tc-3-3",
+          "layer": "unit",
+          "name": "LEDCommandEncoder encodes intensity 0-100%",
+          "command": "swift test --filter LEDCommandEncoderTests/testEncodeIntensity",
+          "expect": "encodeIntensity(0), encodeIntensity(50), encodeIntensity(100) produce correct scaled byte values"
+        },
+        {
+          "id": "tc-3-4",
+          "layer": "unit",
+          "name": "LEDCommandEncoder encodes color temperature 2000K-6500K",
+          "command": "swift test --filter LEDCommandEncoderTests/testEncodeColorTemp",
+          "expect": "encodeColorTemp(kelvin:) maps Kelvin to WW/CW ratio correctly per placeholder protocol"
+        },
+        {
+          "id": "tc-3-5",
+          "layer": "unit",
+          "name": "LEDCommandEncoder encodes full RGBCCT state",
+          "command": "swift test --filter LEDCommandEncoderTests/testEncodeFullState",
+          "expect": "encodeFullState(ColorState) combines power, color, intensity, temp into single command packet"
+        },
+        {
+          "id": "tc-3-6",
+          "layer": "unit",
+          "name": "BLEManager actor compiles and handles delegate callbacks",
+          "command": "swift test --filter BLEManagerTests/testActorCompilation",
+          "expect": "Actor compiles with @MainActor isolation where needed, no concurrency warnings"
+        },
+        {
+          "id": "tc-3-7",
+          "layer": "unit",
+          "name": "BLEManager connection state machine transitions",
+          "command": "swift test --filter BLEManagerTests/testStateMachine",
+          "expect": "States: disconnected → scanning → connecting → connected → failed → disconnected; reconnection backoff tested"
+        },
+        {
+          "id": "tc-3-8",
+          "layer": "unit",
+          "name": "BLEManager scanForDevices discovers peripherals",
+          "command": "swift test --filter BLEManagerTests/testScanForDevices",
+          "expect": "Mock CBCentralManager returns discovered peripherals with RSSI, advertised service UUIDs"
+        },
+        {
+          "id": "tc-3-9",
+          "layer": "unit",
+          "name": "BLEManager connect/disconnect/writeCommand/readState",
+          "command": "swift test --filter BLEManagerTests/testConnectionLifecycle",
+          "expect": "Connect succeeds, writeCommand queues and sends, readState requests notify characteristic, disconnect cleans up"
+        },
+        {
+          "id": "tc-3-10",
+          "layer": "unit",
+          "name": "BLEManager automatic reconnection with exponential backoff",
+          "command": "swift test --filter BLEManagerTests/testReconnectionBackoff",
+          "expect": "After disconnect/failure, reconnect attempts at 1s, 2s, 4s, 8s, max 30s; stops on success or max retries"
+        },
+        {
+          "id": "tc-3-11",
+          "layer": "unit",
+          "name": "MockBLEManager works for UI testing",
+          "command": "swift test --filter BLEManagerTests/testMockBLEManager",
+          "expect": "Mock implements all BLEManager protocols, returns controllable state, records commands for verification"
+        },
+        {
+          "id": "tc-3-12",
+          "layer": "api",
+          "name": "BLEManager integrates with real CoreBluetooth on simulator",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:LEDCoreTests/BLEManagerIntegrationTests",
+          "expect": "Simulated Bluetooth operations complete without crashes; state updates propagate to SwiftUI"
+        }
+      ]
+    },
+    {
+      "checkpointId": 4,
+      "title": "App Intents",
+      "testCases": [
+        {
+          "id": "tc-4-1",
+          "layer": "unit",
+          "name": "LEDDeviceEntity resolves from device name",
+          "command": "swift test --filter IntentsTests/testDeviceEntityResolutionByName",
+          "expect": "Entity query returns correct device for exact and partial name matches"
+        },
+        {
+          "id": "tc-4-2",
+          "layer": "unit",
+          "name": "LEDDeviceEntity resolves from room name",
+          "command": "swift test --filter IntentsTests/testDeviceEntityResolutionByRoom",
+          "expect": "Entity query returns all devices in specified room"
+        },
+        {
+          "id": "tc-4-3",
+          "layer": "unit",
+          "name": "PowerIntent toggles device on/off",
+          "command": "swift test --filter IntentsTests/testPowerIntent",
+          "expect": "Intent performs BLE write, returns success result with updated state; validates device exists"
+        },
+        {
+          "id": "tc-4-4",
+          "layer": "unit",
+          "name": "SetColorIntent sets RGB color (hue/saturation)",
+          "command": "swift test --filter IntentsTests/testSetColorIntent",
+          "expect": "Intent validates hue 0-360, saturation 0-100; converts to RGBCCT; performs BLE write; returns result"
+        },
+        {
+          "id": "tc-4-5",
+          "layer": "unit",
+          "name": "SetColorTempIntent sets color temperature in Kelvin",
+          "command": "swift test --filter IntentsTests/testSetColorTempIntent",
+          "expect": "Intent validates kelvin 2000-6500; converts to WW/CW; performs BLE write; returns result"
+        },
+        {
+          "id": "tc-4-6",
+          "layer": "unit",
+          "name": "SetIntensityIntent sets brightness 0-100%",
+          "command": "swift test --filter IntentsTests/testSetIntensityIntent",
+          "expect": "Intent validates intensity 0-100; performs BLE write; returns result"
+        },
+        {
+          "id": "tc-4-7",
+          "layer": "unit",
+          "name": "QueryStatusIntent returns current device state",
+          "command": "swift test --filter IntentsTests/testQueryStatusIntent",
+          "expect": "Intent reads from BLEManager/lastKnownState; returns power, color, intensity, colorTemp, connection status"
+        },
+        {
+          "id": "tc-4-8",
+          "layer": "unit",
+          "name": "EnableScheduleIntent enables weekly schedule by name",
+          "command": "swift test --filter IntentsTests/testEnableScheduleIntent",
+          "expect": "Intent finds schedule by name, sets isEnabled=true, saves to SwiftData, returns success"
+        },
+        {
+          "id": "tc-4-9",
+          "layer": "unit",
+          "name": "DisableScheduleIntent disables weekly schedule by name",
+          "command": "swift test --filter IntentsTests/testDisableScheduleIntent",
+          "expect": "Intent finds schedule by name, sets isEnabled=false, saves to SwiftData, returns success"
+        },
+        {
+          "id": "tc-4-10",
+          "layer": "unit",
+          "name": "Intent parameter validation rejects invalid values",
+          "command": "swift test --filter IntentsTests/testParameterValidation",
+          "expect": "Intensity >100 or <0 fails; Kelvin <2000 or >6500 fails; hue/saturation out of range fails"
+        },
+        {
+          "id": "tc-4-11",
+          "layer": "unit",
+          "name": "All 7 intents registered in Intents.intentdefinition",
+          "command": "swift test --filter IntentsTests/testIntentRegistration",
+          "expect": "IntentDefinition file contains Power, SetColor, SetColorTemp, SetIntensity, QueryStatus, EnableSchedule, DisableSchedule"
+        },
+        {
+          "id": "tc-4-12",
+          "layer": "api",
+          "name": "Intents available to Siri on iPhone (simulated)",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/IntentAvailabilityTests",
+          "expect": "Siri shortcuts appear for all intents; phrase suggestions match intent phrases"
+        },
+        {
+          "id": "tc-4-13",
+          "layer": "api",
+          "name": "Intents available to Siri on Watch (simulated)",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:SiriLEDControllerWatchUITests/IntentAvailabilityTests",
+          "expect": "Watch Siri recognizes all shared intents via same intentdefinition"
+        }
+      ]
+    },
+    {
+      "checkpointId": 5,
+      "title": "iPhone UI: Devices Tab, Control Screen, Schedules, Settings",
+      "testCases": [
+        {
+          "id": "tc-5-1",
+          "layer": "unit",
+          "name": "RGBCCTPicker component renders and updates state",
+          "command": "swift test --filter ComponentTests/testRGBCCTPicker",
+          "expect": "Hue/saturation wheel + warm/cool slider update @Binding ColorState correctly"
+        },
+        {
+          "id": "tc-5-2",
+          "layer": "unit",
+          "name": "IntensitySlider component 0-100% updates binding",
+          "command": "swift test --filter ComponentTests/testIntensitySlider",
+          "expect": "Slider drag updates intensity binding; accessibility value announced"
+        },
+        {
+          "id": "tc-5-3",
+          "layer": "unit",
+          "name": "ColorTempSlider component 2000K-6500K updates binding",
+          "command": "swift test --filter ComponentTests/testColorTempSlider",
+          "expect": "Slider drag updates colorTemp binding; labels show Kelvin values"
+        },
+        {
+          "id": "tc-5-4",
+          "layer": "unit",
+          "name": "DeviceRow displays device state correctly",
+          "command": "swift test --filter ComponentTests/testDeviceRow",
+          "expect": "Shows name, room, connection indicator (green/red), power toggle state"
+        },
+        {
+          "id": "tc-5-5",
+          "layer": "unit",
+          "name": "ScheduleRow displays schedule and enables editing",
+          "command": "swift test --filter ComponentTests/testScheduleRow",
+          "expect": "Shows name, weekday/weekend times, target color preview, enable toggle"
+        },
+        {
+          "id": "tc-5-6",
+          "layer": "api",
+          "name": "TabView navigation between all 4 tabs works",
+          "command": "xcrun simctl boot 'iPhone 15' && xcrun simctl launch booted <bundle-id> && xcrun simctl ui booted tap --coordinate 'tab=0' && xcrun simctl ui booted tap --coordinate 'tab=1' && xcrun simctl ui booted tap --coordinate 'tab=2' && xcrun simctl ui booted tap --coordinate 'tab=3'",
+          "expect": "Each tab activates, shows correct root view, state preserved on switch"
+        },
+        {
+          "id": "tc-5-7",
+          "layer": "api",
+          "name": "Devices list shows devices with correct state",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/DevicesViewTests/testDeviceListDisplay",
+          "expect": "List populates from SwiftData; connection status updates live; empty state shows 'Add Device' prompt"
+        },
+        {
+          "id": "tc-5-8",
+          "layer": "api",
+          "name": "Tap device navigates to Control screen",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/DevicesViewTests/testDeviceTapNavigation",
+          "expect": "Navigation pushes ControlView with selected device's state pre-loaded"
+        },
+        {
+          "id": "tc-5-9",
+          "layer": "api",
+          "name": "Control screen RGBCCT picker allows hue/sat + warm/cool selection",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/ControlViewTests/testColorPickerInteraction",
+          "expect": "Wheel drag updates hue/sat; warm/cool slider updates WW/CW; preview updates live"
+        },
+        {
+          "id": "tc-5-10",
+          "layer": "api",
+          "name": "Intensity and color temp sliders update live preview",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/ControlViewTests/testSlidersUpdatePreview",
+          "expect": "Preview color box reflects combined RGBCCT state in real time"
+        },
+        {
+          "id": "tc-5-11",
+          "layer": "api",
+          "name": "Apply button sends command via BLEManager",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/ControlViewTests/testApplySendsCommand",
+          "expect": "MockBLEManager receives writeCommand with correct encoded packet; UI shows sending/success state"
+        },
+        {
+          "id": "tc-5-12",
+          "layer": "api",
+          "name": "Schedules tab create/edit/delete/enable/disable",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/SchedulesViewTests/testScheduleCRUD",
+          "expect": "Add opens editor; save creates WeeklySchedule; edit modifies; delete removes; toggle updates isEnabled"
+        },
+        {
+          "id": "tc-5-13",
+          "layer": "api",
+          "name": "Schedule editor weekday/weekend time pickers work",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/SchedulesViewTests/testTimePickers",
+          "expect": "DatePickers for weekdaysOn/Off, weekendOn/Off set correct times; validation prevents on >= off"
+        },
+        {
+          "id": "tc-5-14",
+          "layer": "api",
+          "name": "Settings shows Bluetooth debug info",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/SettingsViewTests/testBluetoothDebug",
+          "expect": "Lists discovered peripherals with name, RSSI, service UUIDs; refresh button triggers new scan"
+        },
+        {
+          "id": "tc-5-15",
+          "layer": "api",
+          "name": "Settings reset data clears SwiftData",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/SettingsViewTests/testResetData",
+          "expect": "Confirmation dialog appears; confirm deletes all devices and schedules; UI returns to empty state"
+        },
+        {
+          "id": "tc-5-16",
+          "layer": "ui-e2e",
+          "name": "Full iPhone UI matches prototype across all states",
+          "command": "ai-review-ui --prototype .ai-engineering/workflow/prototypes/siri-led-controller-iphone.html --app SiriLEDController --states empty,device-connected,device-disconnected,control-color,control-white,schedule-list,schedule-edit,settings",
+          "expect": "Visual diff passes for all 8 states; no layout shifts, color mismatches, or missing elements"
+        }
+      ]
+    },
+    {
+      "checkpointId": 6,
+      "title": "Widget Extension (Lock/Home Screen)",
+      "testCases": [
+        {
+          "id": "tc-6-1",
+          "layer": "unit",
+          "name": "WidgetProvider timeline reads from SwiftData",
+          "command": "swift test --filter WidgetTests/testTimelineProvider",
+          "expect": "getSnapshot and getTimeline return entries with current device states from shared container"
+        },
+        {
+          "id": "tc-6-2",
+          "layer": "unit",
+          "name": "Small widget: single device power + intensity",
+          "command": "swift test --filter WidgetTests/testSmallWidgetRendering",
+          "expect": "View renders device name, power toggle button, intensity gauge; correct for on/off states"
+        },
+        {
+          "id": "tc-6-3",
+          "layer": "unit",
+          "name": "Medium widget: up to 3 devices with power + color indicator",
+          "command": "swift test --filter WidgetTests/testMediumWidgetRendering",
+          "expect": "Shows 1-3 devices horizontally; each shows name, power icon, color circle matching RGBCCT"
+        },
+        {
+          "id": "tc-6-4",
+          "layer": "unit",
+          "name": "Large widget: all devices + next schedule time + target state",
+          "command": "swift test --filter WidgetTests/testLargeWidgetRendering",
+          "expect": "Lists all devices; shows next schedule time and target color/intensity; handles no-schedule case"
+        },
+        {
+          "id": "tc-6-5",
+          "layer": "unit",
+          "name": "Widget configuration allows device selection",
+          "command": "swift test --filter WidgetTests/testWidgetConfiguration",
+          "expect": "Intent-based config shows device picker; selected devices persist across widget reloads"
+        },
+        {
+          "id": "tc-6-6",
+          "layer": "api",
+          "name": "Deep link from widget opens Control screen for selected device",
+          "command": "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerWidgetUITests/testDeepLink",
+          "expect": "Tapping widget device opens app to ControlView with that device selected"
+        },
+        {
+          "id": "tc-6-7",
+          "layer": "api",
+          "name": "Widget timeline updates reflect device state changes",
+          "command": "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerWidgetUITests/testTimelineUpdates",
+          "expect": "After app changes device state, widget reload shows new state within timeline refresh interval"
+        },
+        {
+          "id": "tc-6-8",
+          "layer": "ui-e2e",
+          "name": "All widget families match prototype across states",
+          "command": "ai-review-ui --prototype .ai-engineering/workflow/prototypes/siri-led-controller-widget.html --widget SiriLEDControllerWidget --families small,medium,large --states single-device,multi-device,with-schedule,all-off",
+          "expect": "Visual diff passes for 3 families × 4 states = 12 combinations"
+        }
+      ]
+    },
+    {
+      "checkpointId": 7,
+      "title": "Apple Watch App",
+      "testCases": [
+        {
+          "id": "tc-7-1",
+          "layer": "unit",
+          "name": "WatchColorTempPicker component (warm/cool/neutral)",
+          "command": "swift test --filter WatchComponentTests/testWatchColorTempPicker",
+          "expect": "Three large buttons: warm (2700K), neutral (4000K), cool (6500K); selection updates binding"
+        },
+        {
+          "id": "tc-7-2",
+          "layer": "unit",
+          "name": "WatchIntensitySlider component with digital crown support",
+          "command": "swift test --filter WatchComponentTests/testWatchIntensitySlider",
+          "expect": "Slider + digital crown rotation both update intensity 0-100%; haptic on 25% increments"
+        },
+        {
+          "id": "tc-7-3",
+          "layer": "api",
+          "name": "Watch app builds and runs on watchOS 10+ simulator",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' build",
+          "expect": "Build succeeds; app launches on simulator"
+        },
+        {
+          "id": "tc-7-4",
+          "layer": "api",
+          "name": "Device list shows power toggle, intensity, color temp per device",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:SiriLEDControllerWatchUITests/DeviceListViewTests/testDeviceListDisplay",
+          "expect": "List rows show device name, power switch, intensity value, color temp label; updates live"
+        },
+        {
+          "id": "tc-7-5",
+          "layer": "api",
+          "name": "Detail view provides quick color presets and larger controls",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:SiriLEDControllerWatchUITests/DeviceControlViewTests/testDetailView",
+          "expect": "Tap device → detail with large power button, intensity slider, color presets (warm/cool/red/green/blue)"
+        },
+        {
+          "id": "tc-7-6",
+          "layer": "api",
+          "name": "Complications display current state and next schedule",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:SiriLEDControllerWatchUITests/ComplicationTests/testComplicationRendering",
+          "expect": "Circular: power + intensity; Rectangular: device list; Modular: next schedule time + target state"
+        },
+        {
+          "id": "tc-7-7",
+          "layer": "api",
+          "name": "Siri commands work from Watch via shared App Intents",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:SiriLEDControllerWatchUITests/IntentTests/testWatchSiriIntents",
+          "expect": "All 7 intents trigger correctly from Watch Siri; results returned to Watch UI"
+        },
+        {
+          "id": "tc-7-8",
+          "layer": "ui-e2e",
+          "name": "Watch UI matches prototype across states",
+          "command": "ai-review-ui --prototype .ai-engineering/workflow/prototypes/siri-led-controller-watch.html --app SiriLEDControllerWatch --states device-list,device-control,complication-circular,complication-rectangular,complication-modular",
+          "expect": "Visual diff passes for all 5 states; tap targets ≥44pt; text legible at glance"
+        }
+      ]
+    },
+    {
+      "checkpointId": 8,
+      "title": "Background Scheduler",
+      "testCases": [
+        {
+          "id": "tc-8-1",
+          "layer": "unit",
+          "name": "ScheduleEngine evaluates weekday schedule at correct times",
+          "command": "swift test --filter ScheduleEngineTests/testWeekdayEvaluation",
+          "expect": "At weekdaysOn time → returns ScheduleAction(powerOn, targetState); at weekdaysOff → returns ScheduleAction(powerOff)"
+        },
+        {
+          "id": "tc-8-2",
+          "layer": "unit",
+          "name": "ScheduleEngine evaluates weekend schedule at correct times",
+          "command": "swift test --filter ScheduleEngineTests/testWeekendEvaluation",
+          "expect": "At weekendOn time → returns ScheduleAction(powerOn, targetState); at weekendOff → returns ScheduleAction(powerOff)"
+        },
+        {
+          "id": "tc-8-3",
+          "layer": "unit",
+          "name": "ScheduleEngine respects isEnabled flag",
+          "command": "swift test --filter ScheduleEngineTests/testDisabledScheduleSkipped",
+          "expect": "Disabled schedules produce no actions regardless of time"
+        },
+        {
+          "id": "tc-8-4",
+          "layer": "unit",
+          "name": "ScheduleEngine handles overlapping schedules (last wins)",
+          "command": "swift test --filter ScheduleEngineTests/testOverlappingSchedules",
+          "expect": "Multiple enabled schedules for same device: latest matching time wins"
+        },
+        {
+          "id": "tc-8-5",
+          "layer": "unit",
+          "name": "ScheduleEngine computes next schedule time for widget",
+          "command": "swift test --filter ScheduleEngineTests/testNextScheduleTime",
+          "expect": "Returns next Date and target state for each device; handles no-enabled-schedules"
+        },
+        {
+          "id": "tc-8-6",
+          "layer": "unit",
+          "name": "BGAppRefreshTask registers with ~15 min interval",
+          "command": "swift test --filter ScheduleEngineTests/testBGTaskRegistration",
+          "expect": "BGAppRefreshTaskRequest submitted with earliestBeginDate ≈ now + 15 min; identifier matches"
+        },
+        {
+          "id": "tc-8-7",
+          "layer": "unit",
+          "name": "Background task executes schedule actions via BLEManager",
+          "command": "swift test --filter ScheduleEngineTests/testBackgroundExecution",
+          "expect": "Mock task handler calls ScheduleEngine, gets actions, calls BLEManager.writeCommand for each"
+        },
+        {
+          "id": "tc-8-8",
+          "layer": "unit",
+          "name": "Local notifications fire as fallback with device/action info",
+          "command": "swift test --filter NotificationManagerTests/testScheduleFailureNotification",
+          "expect": "UNUserNotificationCenter receives notification with title 'Schedule Failed', body includes device name and intended action"
+        },
+        {
+          "id": "tc-8-9",
+          "layer": "unit",
+          "name": "App relaunch reschedules BGAppRefreshTask",
+          "command": "swift test --filter ScheduleEngineTests/testTaskRescheduleOnLaunch",
+          "expect": "AppDelegate/SceneDelegate calls scheduleAppRefresh on launch if no pending task"
+        },
+        {
+          "id": "tc-8-10",
+          "layer": "api",
+          "name": "Background task fires in simulator (accelerated time)",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:SiriLEDControllerUITests/BackgroundTests/testBackgroundTaskFires",
+          "expect": "Simulator debug menu 'Trigger Background Task' fires task; schedule actions execute; widget updates"
+        }
+      ]
+    },
+    {
+      "checkpointId": 9,
+      "title": "Integration Testing + Polish",
+      "testCases": [
+        {
+          "id": "tc-9-1",
+          "layer": "api",
+          "name": "Full flow: scan → pair → control → schedule → Siri → widget → watch",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:IntegrationTests/testFullFlow",
+          "expect": "E2E test drives MockBLEManager through complete user journey; all assertions pass"
+        },
+        {
+          "id": "tc-9-2",
+          "layer": "api",
+          "name": "Siri responds to all 7 intent types on iPhone",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:IntegrationTests/testSiriIntentsIPhone",
+          "expect": "Each intent triggered via INInteraction; performs action; returns correct intent response"
+        },
+        {
+          "id": "tc-9-3",
+          "layer": "api",
+          "name": "Siri responds to all 7 intent types on Watch",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:IntegrationTests/testSiriIntentsWatch",
+          "expect": "Each intent triggered via Watch Siri; performs action; returns correct response"
+        },
+        {
+          "id": "tc-9-4",
+          "layer": "api",
+          "name": "Weekly schedules fire on time in background (simulated)",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:IntegrationTests/testBackgroundScheduling",
+          "expect": "Advance simulator clock; background task fires; BLEManager receives commands; widget updates"
+        },
+        {
+          "id": "tc-9-5",
+          "layer": "api",
+          "name": "Widgets show current state and next schedule correctly",
+          "command": "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:IntegrationTests/testWidgetStateSync",
+          "expect": "After app state change, widget timeline reflects new state within refresh window"
+        },
+        {
+          "id": "tc-9-6",
+          "layer": "api",
+          "name": "Watch app quick control and complications work",
+          "command": "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test -only-testing:IntegrationTests/testWatchIntegration",
+          "expect": "Watch controls change device state; iPhone app reflects change; complications update"
+        },
+        {
+          "id": "tc-9-7",
+          "layer": "api",
+          "name": "No Bluetooth connection leaks (proper cleanup)",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:IntegrationTests/testBluetoothCleanup",
+          "expect": "Repeated connect/disconnect cycles don't accumulate CBCentralManager/CBPeripheral references"
+        },
+        {
+          "id": "tc-9-8",
+          "layer": "api",
+          "name": "No memory leaks in SwiftUI views and BLEManager",
+          "command": "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:IntegrationTests/testMemoryLeaks",
+          "expect": "Instruments allocation test: no persistent growth after 100 navigation/control cycles"
+        },
+        {
+          "id": "tc-9-9",
+          "layer": "ui-e2e",
+          "name": "Final iPhone UI polish matches prototype (all states)",
+          "command": "ai-review-ui --prototype .ai-engineering/workflow/prototypes/siri-led-controller-iphone.html --app SiriLEDController --states empty,device-connected,device-disconnected,control-color,control-white,schedule-list,schedule-edit,settings",
+          "expect": "Visual diff passes; animations smooth (60fps); haptics on buttons; loading states shown; error toasts appear"
+        },
+        {
+          "id": "tc-9-10",
+          "layer": "ui-e2e",
+          "name": "Final Watch UI polish matches prototype",
+          "command": "ai-review-ui --prototype .ai-engineering/workflow/prototypes/siri-led-controller-watch.html --app SiriLEDControllerWatch --states device-list,device-control,complication-circular,complication-rectangular,complication-modular",
+          "expect": "Visual diff passes; haptics on crown/buttons; glanceable at 2m; dark mode correct"
+        },
+        {
+          "id": "tc-9-11",
+          "layer": "ui-e2e",
+          "name": "Final Widget polish matches prototype",
+          "command": "ai-review-ui --prototype .ai-engineering/workflow/prototypes/siri-led-controller-widget.html --widget SiriLEDControllerWidget --families small,medium,large --states single-device,multi-device,with-schedule,all-off",
+          "expect": "Visual diff passes; deep links work; timeline updates smooth"
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    "Physical hardware testing (checkpoint 9) cannot be fully automated in CI — requires TestFlight on real devices with actual LED controllers",
+    "Bluetooth background execution reliability over hours/days requires long-running manual/device-farm testing",
+    "Siri intent recognition accuracy with natural language variations not testable in simulator — needs real device validation",
+    "Widget timeline refresh interval behavior (system-controlled) cannot be precisely timed in tests",
+    "Watch complications update budget (system-enforced) not verifiable in simulator",
+    "LEDCommandEncoder protocol refinement depends on reverse-engineering real hardware — placeholder tests only validate structure",
+    "Background task scheduling exact timing (15 min) is approximate; iOS coalesces tasks — test uses accelerated simulator trigger"
+  ],
+  "summary": {
+    "unit": 48,
+    "api": 29,
+    "ui-e2e": 10,
+    "total": 87
+  }
+}

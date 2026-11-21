@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="ai-feature" content="siri-led-controller">
+  <meta name="ai-approved" content="2026-11-21">
+  <title>Brainstorm · Siri LED Controller</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --fg: #e8e8e8;
+      --muted: #888;
+      --accent: #00d4aa;
+      --accent-dim: #00d4aa33;
+      --card: #161616;
+      --border: #2a2a2a;
+      --hero-bg: #111;
+      --note-bg: #1a1a1a;
+      --note-border: #333;
+      --ok: #00d4aa;
+      --warn: #ffb800;
+      --danger: #ff4757;
+      --code-bg: #0f0f0f;
+      --code-fg: #00d4aa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; min-height: 100vh; }
+    .hero { background: var(--hero-bg); border-bottom: 1px solid var(--border); padding: 3rem 2rem; text-align: center; }
+    .hero .badge { display: inline-block; background: var(--accent-dim); color: var(--accent); padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-bottom: 1rem; }
+    .hero h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .hero .sub { color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+    .hero .meta { margin-top: 1rem; color: var(--muted); font-size: 0.875rem; }
+    nav { position: sticky; top: 0; background: rgba(13,13,13,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); z-index: 100; }
+    nav ul { display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.75rem 2rem; list-style: none; }
+    nav a { color: var(--muted); text-decoration: none; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500; transition: all 0.15s; }
+    nav a:hover, nav a.active { color: var(--accent); background: var(--accent-dim); }
+    main { max-width: 900px; margin: 0 auto; padding: 2rem; }
+    section { margin-bottom: 3rem; }
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+    h2 .num { background: var(--accent); color: #000; font-size: 0.75rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 4px; min-width: 2rem; text-align: center; }
+    p { color: var(--fg); margin-bottom: 1rem; }
+    ul, ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+    li { margin-bottom: 0.5rem; }
+    code { background: var(--code-bg); color: var(--code-fg); padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875em; font-family: 'SF Mono', Monaco, monospace; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin-bottom: 1rem; }
+    pre code { background: none; padding: 0; color: var(--fg); }
+    .note { border-left: 3px solid; padding: 1rem 1.25rem; background: var(--note-bg); border-radius: 0 8px 8px 0; margin-bottom: 1rem; }
+    .note.ok { border-color: var(--ok); }
+    .note.warn { border-color: var(--warn); }
+    .note.danger { border-color: var(--danger); }
+    .note h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .note.ok h3 { color: var(--ok); }
+    .note.warn h3 { color: var(--warn); }
+    .note.danger h3 { color: var(--danger); }
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.875rem; border-top: 1px solid var(--border); }
+    .approve-banner { background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 8px; padding: 1.5rem; text-align: center; margin-bottom: 2rem; }
+    .approve-banner strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <span class="badge">Brainstorm · Siri LED Controller</span>
+    <h1>Siri LED Controller</h1>
+    <p class="sub">A personal iOS 17+ app to control RGBCCT LED strips via Bluetooth with full Siri/App Intents integration, weekly scheduling, and a rich SwiftUI interface.</p>
+    <div class="meta">Status: complete · 2026-11-21</div>
+  </header>
+
+  <nav>
+    <ul>
+      <li><a href="#01-idea">01 Idea</a></li>
+      <li><a href="#02-why">02 Why</a></li>
+      <li><a href="#03-users">03 Users</a></li>
+      <li><a href="#04-existing">04 Existing</a></li>
+      <li><a href="#05-success">05 Success</a></li>
+      <li><a href="#06-decisions-made">06 Decisions Made</a></li>
+      <li><a href="#07-decisions-open">07 Decisions Open</a></li>
+      <li><a href="#08-constraints">08 Constraints</a></li>
+      <li><a href="#09-out-of-scope">09 Out of Scope</a></li>
+      <li><a href="#10-research">10 Research</a></li>
+      <li><a href="#11-handoff">11 Handoff</a></li>
+    </ul>
+  </nav>
+
+  <main id="main">
+    <div class="approve-banner" style="background: #00d4aa22; border-color: #00d4aa;">
+      <strong>✅ Approved</strong> — Ready for <code>/ai-orchestrator</code>
+    </div>
+
+    <section id="01-idea">
+      <h2><span class="num">01</span>The Idea in Plain Words</h2>
+      <p>You want a personal iPhone and Apple Watch app that connects via Bluetooth to 2–5 RGBCCT LED controllers (each in a different room or zone). The app gives you a full visual interface on iPhone: a color picker that handles both hue/saturation and warm-to-cool white temperature, an intensity slider, and a simple weekly scheduler (different on/off times for weekdays vs weekends, with a target color and brightness). Every action — power, color, intensity, color temperature, schedule enable/disable — is also exposed to Siri through App Intents so you can say things like "Hey Siri, turn on the bedroom lights" or "Set the living room to warm white at 50 percent" from your iPhone or Apple Watch. You will provide the current iOS app you use today so the Bluetooth protocol can be reverse-engineered. The app is for personal use only, distributed via Xcode or TestFlight, with no iCloud sync, no HomeKit, no family sharing.</p>
+    </section>
+
+    <section id="02-why">
+      <h2><span class="num">02</span>Why This Matters</h2>
+      <p>The existing LED controller app lacks Siri integration, forcing manual app interaction for every change. Voice control is the natural interface for ambient lighting — you shouldn't need to unlock your phone, find the app, and tap buttons just to dim the lights or change the mood. A personal app also avoids the limitations of commercial solutions (subscription fees, cloud dependence, limited customization) and gives you full ownership of the scheduling logic and Siri phrases.</p>
+    </section>
+
+    <section id="03-users">
+      <h2><span class="num">03</span>Who It's For</h2>
+      <p>Single user (you), personal use across one iPhone. No sharing, no multi-user accounts, no family sync. The app is built for your specific hardware and your specific rooms.</p>
+    </section>
+
+    <section id="04-existing">
+      <h2><span class="num">04</span>What Exists Today</h2>
+      <ul>
+        <li>An iOS app (provided by you) that controls the LED controllers via Bluetooth</li>
+        <li>2–5 physical LED controllers, each exposing a Bluetooth LE service with one or more writable characteristics</li>
+        <li>RGBCCT (5-channel) LED strips: Red, Green, Blue, Warm White, Cool White</li>
+        <li>No public documentation for the Bluetooth protocol — will be discovered during development via trial-and-error with nRF Connect</li>
+        <li>No existing codebase for this new app — greenfield project</li>
+      </ul>
+    </section>
+
+    <section id="05-success">
+      <h2><span class="num">05</span>What Success Looks Like</h2>
+      <ul>
+        <li>App launches, scans, and pairs with all 2–5 controllers reliably</li>
+        <li>Visual control screen lets you pick any RGBCCT color and intensity smoothly</li>
+        <li>Weekly schedules fire on time (weekdays vs weekends) even when app is not running</li>
+        <li>Siri responds to natural commands for every controllable parameter</li>
+        <li>Apple Watch app provides quick control (power, intensity, color temp) and Siri works from wrist</li>
+        <li>No crashes, no Bluetooth connection leaks, battery-friendly background operation</li>
+        <li>Installs via Xcode / TestFlight on your iPhone (iOS 17+) and Apple Watch (watchOS 10+)</li>
+      </ul>
+    </section>
+
+    <section id="06-decisions-made">
+      <h2><span class="num">06</span>Decisions Already Made</h2>
+      <div class="note ok">
+        <h3>Locked Decisions</h3>
+        <ul>
+          <li><strong>Platform:</strong> iOS 17+ and watchOS 10+ (SwiftUI, SwiftData, App Intents, BackgroundTasks)</li>
+          <li><strong>Architecture:</strong> SwiftUI + SwiftData + CoreBluetooth (MVVM, no TCA, no Realm)</li>
+          <li><strong>Siri:</strong> App Intents (iOS 16+), not legacy SiriKit/Shortcuts</li>
+          <li><strong>Distribution:</strong> Personal — Xcode install / TestFlight only</li>
+          <li><strong>Sharing/Sync:</strong> None — local only, no iCloud, no HomeKit</li>
+          <li><strong>Color format:</strong> RGBCCT (5 channels: RGB + warm white + cool white)</li>
+          <li><strong>Scheduling:</strong> Simple weekly — weekday on/off times, weekend on/off times, target state per schedule</li>
+          <li><strong>Devices:</strong> 2–5 controllers, each named by room/zone</li>
+          <li><strong>UI:</strong> Full tabbed interface (Devices, Control, Schedules, Settings) + Lock/Home screen widgets + Apple Watch app</li>
+          <li><strong>Background execution:</strong> BGAppRefreshTask every ~15 min + local notification fallback + bluetooth-central background mode</li>
+          <li><strong>Reverse engineering:</strong> Protocol will be discovered iteratively during development using nRF Connect on Windows; initial <code>LEDCommandEncoder</code> will use placeholder/guessed format, refined as commands are tested</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="07-decisions-open">
+      <h2><span class="num">07</span>Decisions Still Open</h2>
+      <div class="note warn">
+        <h3>Open Decisions (User Must Close)</h3>
+        <ol>
+          <li><strong>Scene presets:</strong> <strong>Decided: No</strong> — not including named scenes</li>
+          <li><strong>Query intents:</strong> <strong>Decided: Yes</strong> — add "Hey Siri, what's the bedroom light status?" read-only intents</li>
+          <li><strong>Widget timeline:</strong> <strong>Decided: Yes</strong> — widgets show current state and next scheduled change</li>
+          <li><strong>Animation/transition support:</strong> <strong>Decided: Only if hardware supports it</strong> — discover during reverse engineering</li>
+          <li><strong>Error/notification UX:</strong> <strong>Decided: Yes</strong> — local notifications when schedule fails to execute</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="08-constraints">
+      <h2><span class="num">08</span>Constraints and Guardrails</h2>
+      <ul>
+        <li><strong>iOS 17+ / watchOS 10+ only</strong> — no backward compatibility code</li>
+        <li><strong>Personal distribution</strong> — no App Store review constraints, but also no push notification service (APNs) unless you configure it</li>
+        <li><strong>Bluetooth LE only</strong> — no Thread, Matter, Wi-Fi, or Zigbee</li>
+        <li><strong>Single iPhone + Apple Watch</strong> — no multi-device sync, no tvOS/macOS/visionOS targets</li>
+        <li><strong>SwiftData local-only</strong> — CloudKit container disabled</li>
+        <li><strong>Background execution budget</strong> — BGAppRefreshTask ~15 min intervals; cannot guarantee exact-minute firing</li>
+        <li><strong>Reverse engineering required</strong> — protocol unknown until capture completed</li>
+        <li><strong>Watch limitations:</strong> watchOS cannot run long background tasks; Bluetooth operations must be fast; UI is glanceable not full-featured</li>
+      </ul>
+    </section>
+
+    <section id="09-out-of-scope">
+      <h2><span class="num">09</span>Out of Scope</h2>
+      <div class="note danger">
+        <h3>Explicitly Not Building</h3>
+        <ul>
+          <li>HomeKit / Matter integration</li>
+          <li>iCloud sync or multi-device support</li>
+          <li>Family sharing or multi-user accounts</li>
+          <li>App Store release (no review prep, no privacy manifest for tracking)</li>
+          <li>tvOS, macOS, visionOS targets</li>
+          <li>Firmware updates for the LED controllers (DFU)</li>
+          <li>Complex scene editor (timelines, animations, music sync)</li>
+          <li>Remote control over internet (no cloud bridge)</li>
+          <li>Third-party voice assistants (Alexa, Google Assistant)</li>
+          <li>Named scene presets (Movie Night, Reading, etc.)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="10-research">
+      <h2><span class="num">10</span>Open Questions for Research</h2>
+      <ol>
+        <li><strong>Bluetooth protocol:</strong> What are the service UUID, characteristic UUIDs, and exact byte format for each command? <em>Will be discovered iteratively during development using nRF Connect on Windows; initial implementation uses best-guess format for common RGB controllers.</em></li>
+        <li><strong>Controller capabilities:</strong> Does hardware support fade transitions, stored scenes, or read-back of current state? <em>Affects UI polish and Siri query intents; discover during manual testing.</em></li>
+        <li><strong>Connection stability:</strong> How do controllers behave after hours/days of inactivity? Do they advertise continuously? <em>Affects reconnection logic and background scheduling reliability.</em></li>
+      </ol>
+    </section>
+
+    <section id="11-handoff">
+      <h2><span class="num">11</span>Handoff Notes</h2>
+      <ul>
+        <li><strong>Start with:</strong> Xcode project setup (SwiftUI, SwiftData, CoreBluetooth, App Intents capabilities), add Watch target, then <code>BLEManager</code> actor skeleton</li>
+        <li><strong>Parallel track:</strong> Protocol discovery — use nRF Connect Windows to test commands against hardware; update <code>LEDCommandEncoder</code> as format is discovered</li>
+        <li><strong>Data models first:</strong> <code>LEDDevice</code>, <code>WeeklySchedule</code> in SwiftData (no LEDScene)</li>
+        <li><strong>App Intents early:</strong> Define entities and intents alongside data models so Siri integration isn't an afterthought; include query intents for status</li>
+        <li><strong>Widgets:</strong> Add Widget Extension target; timeline provider reads SwiftData</li>
+        <li><strong>Apple Watch:</strong> Add Watch App target (watchOS 10+); share <code>BLEManager</code> and models via shared framework or package; UI: simple list of devices with power toggle, intensity slider, color temp picker; App Intents automatically available on Watch via same intent definitions</li>
+        <li><strong>Background tasks:</strong> Register <code>BGAppRefreshTask</code> in <code>AppDelegate</code> / <code>@main</code>; schedule evaluation logic shared with widget timeline</li>
+        <li><strong>Testing:</strong> Unit test <code>LEDCommandEncoder</code> against discovered protocol; UI test scheduler logic with mocked time; test Watch app in simulator</li>
+        <li><strong>Relevant files to create:</strong> <code>BLEManager.swift</code>, <code>LEDCommandEncoder.swift</code>, <code>Models.swift</code>, <code>Intents.swift</code>, <code>WidgetProvider.swift</code>, <code>ScheduleEngine.swift</code>, <code>WatchApp/</code> target</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>{ai}</span> Brainstorm · Siri LED Controller · draft · 2026-11-20
+  </footer>
+
+  <script>
+    const sections = document.querySelectorAll('main section');
+    const navLinks = document.querySelectorAll('nav a');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          navLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>

@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Siri LED Controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=SF+Pro+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+      --transition-fast: 120ms ease-out;
+      --transition-normal: 200ms ease-out;
+      --transition-slow: 300ms ease-out;
+
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+
+      --font-size-xs: 11px;
+      --font-size-sm: 13px;
+      --font-size-base: 15px;
+      --font-size-lg: 17px;
+      --font-size-xl: 20px;
+      --font-size-2xl: 24px;
+      --font-size-3xl: 28px;
+      --font-size-4xl: 34px;
+
+      --font-weight-regular: 400;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+
+      --nav-bar-height: 44px;
+      --tab-bar-height: 83px;
+      --status-bar-height: 47px;
+      --safe-area-inset-bottom: 34px;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg-primary: #f2f2f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #f2f2f7;
+        --bg-grouped: #f2f2f7;
+        --bg-card: #ffffff;
+
+        --text-primary: #000000;
+        --text-secondary: #3c3c4399;
+        --text-tertiary: #3c3c434d;
+        --text-quaternary: #3c3c432e;
+        --text-inverse: #ffffff;
+
+        --border-primary: #3c3c432e;
+        --border-secondary: #3c3c434d;
+        --border-focus: #007aff;
+
+        --accent-blue: #007aff;
+        --accent-blue-hover: #0056d6;
+        --accent-green: #34c759;
+        --accent-red: #ff3b30;
+        --accent-orange: #ff9f0a;
+        --accent-purple: #af52de;
+        --accent-pink: #ff2d92;
+        --accent-teal: #30b0c7;
+        --accent-indigo: #5e5ce6;
+
+        --separator: #3c3c432e;
+        --separator-opaque: #c6c6c8;
+
+        --shadow-color: rgba(0,0,0,0.1);
+
+        --tab-bar-bg: rgba(242,242,247,0.85);
+        --nav-bar-bg: rgba(242,242,247,0.85);
+        --modal-bg: rgba(0,0,0,0.4);
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #000000;
+        --bg-secondary: #1c1c1e;
+        --bg-tertiary: #2c2c2e;
+        --bg-grouped: #000000;
+        --bg-card: #1c1c1e;
+
+        --text-primary: #ffffff;
+        --text-secondary: #ebebf599;
+        --text-tertiary: #ebebf54d;
+        --text-quaternary: #ebebf52e;
+        --text-inverse: #000000;
+
+        --border-primary: #38383a;
+        --border-secondary: #48484a;
+        --border-focus: #0a84ff;
+
+        --accent-blue: #0a84ff;
+        --accent-blue-hover: #409cff;
+        --accent-green: #30d158;
+        --accent-red: #ff453a;
+        --accent-orange: #ff9f0a;
+        --accent-purple: #bf5af2;
+        --accent-pink: #ff379a;
+        --accent-teal: #64d2ff;
+        --accent-indigo: #8a87ff;
+
+        --separator: #38383a;
+        --separator-opaque: #38383a;
+
+        --shadow-color: rgba(0,0,0,0.3);
+
+        --tab-bar-bg: rgba(0,0,0,0.85);
+        --nav-bar-bg: rgba(0,0,0,0.85);
+        --modal-bg: rgba(0,0,0,0.6);
+      }
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-regular);
+      line-height: 1.47;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+    }
+
+    .app {
+      position: relative;
+      width: 390px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      height: var(--status-bar-height);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 var(--spacing-md) var(--spacing-xs);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      background: var(--bg-primary);
+    }
+
+    .status-bar-left { display: flex; gap: var(--spacing-sm); }
+    .status-bar-right { display: flex; align-items: center; gap: var(--spacing-xs); }
+
+    .status-bar-icon {
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Navigation Bar */
+    .nav-bar {
+      height: var(--nav-bar-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--spacing-md);
+      background: var(--nav-bar-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid var(--separator);
+      position: sticky;
+      top: var(--status-bar-height);
+      z-index: 100;
+    }
+
+    .nav-title {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+    }
+
+    .nav-btn {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--accent-blue);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .nav-btn:hover { background: var(--bg-tertiary); }
+    .nav-btn:active { background: var(--border-primary); }
+    .nav-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+    .nav-btn.icon-only { padding: 0; }
+    .nav-btn svg { width: 22px; height: 22px; }
+
+    /* Tab Bar */
+    .tab-bar {
+      height: var(--tab-bar-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding-bottom: var(--safe-area-inset-bottom);
+      background: var(--tab-bar-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 0.5px solid var(--separator);
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 390px;
+      max-width: 100%;
+      z-index: 100;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: var(--spacing-xs) 0;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: color var(--transition-fast);
+      min-width: 0;
+    }
+
+    .tab-item.active { color: var(--accent-blue); }
+    .tab-item svg { width: 25px; height: 25px; }
+    .tab-item:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+    /* Screens */
+    .screen {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom) + var(--spacing-lg));
+      padding-top: 0;
+    }
+
+    .screen.active { display: block; }
+
+    .screen-content { padding: var(--spacing-md) var(--spacing-md) var(--spacing-xl); }
+
+    /* List Styles */
+    .list-section { margin-bottom: var(--spacing-xl); }
+    .list-section:last-child { margin-bottom: 0; }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: var(--spacing-sm) 0;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .section-title {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+    }
+
+    .section-link {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+
+    .section-link:hover { text-decoration: underline; }
+
+    .list-group {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border-primary);
+      overflow: hidden;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: var(--spacing-md) var(--spacing-md);
+      border-bottom: 0.5px solid var(--separator);
+      transition: background var(--transition-fast);
+      min-height: 56px;
+    }
+
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: var(--bg-tertiary); }
+    .list-item:active { background: var(--border-primary); }
+
+    .list-item-content { flex: 1; min-width: 0; }
+    .list-item-title { font-size: var(--font-size-base); font-weight: var(--font-weight-medium); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-item-subtitle { font-size: var(--font-size-sm); font-weight: var(--font-weight-regular); color: var(--text-secondary); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-item-meta { display: flex; align-items: center; gap: var(--spacing-sm); margin-left: var(--spacing-md); flex-shrink: 0; }
+
+    .list-item-chevron { width: 13px; height: 13px; color: var(--text-tertiary); flex-shrink: 0; margin-left: var(--spacing-sm); }
+
+    /* Status Dot */
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.connected { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .status-dot.disconnected { background: var(--text-tertiary); }
+    .status-dot.connecting { background: var(--accent-orange); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Color Preview */
+    .color-preview {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-primary);
+      flex-shrink: 0;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-lg);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      border-radius: var(--radius-full);
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: var(--text-inverse);
+    }
+    .btn-primary:hover { background: var(--accent-blue-hover); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-primary);
+    }
+    .btn-secondary:hover { background: var(--border-primary); }
+
+    .btn-destructive { background: var(--accent-red); color: var(--text-inverse); }
+    .btn-destructive:hover { background: #cc2f26; }
+
+    .btn-ghost { background: transparent; color: var(--accent-blue); padding: var(--spacing-xs) var(--spacing-sm); }
+    .btn-ghost:hover { background: var(--bg-tertiary); }
+
+    .btn-block { width: 100%; }
+    .btn-sm { padding: var(--spacing-xs) var(--spacing-md); font-size: var(--font-size-sm); }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 52px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border-primary);
+      border-radius: var(--radius-full);
+      transition: background var(--transition-fast);
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 28px;
+      height: 28px;
+      background: var(--text-inverse);
+      border-radius: 50%;
+      box-shadow: var(--shadow-md);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent-green); }
+    .toggle input:checked + .toggle-track + .toggle-thumb { transform: translateX(20px); }
+    .toggle input:focus-visible + .toggle-track { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+    /* Forms */
+    .form-group { margin-bottom: var(--spacing-lg); }
+    .form-label {
+      display: block;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-xs);
+    }
+    .form-input, .form-select {
+      width: 100%;
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-base);
+      font-family: inherit;
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-blue)33; }
+    .form-input::placeholder { color: var(--text-tertiary); }
+    .form-row { display: flex; gap: var(--spacing-md); }
+    .form-row .form-group { flex: 1; }
+
+    /* Slider */
+    .slider-container { padding: var(--spacing-sm) 0; }
+    .slider-label { display: flex; justify-content: space-between; margin-bottom: var(--spacing-xs); font-size: var(--font-size-sm); color: var(--text-secondary); }
+    .slider-value { font-weight: var(--font-weight-medium); color: var(--text-primary); }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border-primary);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      background: var(--text-inverse);
+      border-radius: 50%;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); box-shadow: var(--shadow-lg); }
+    input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.25); }
+    input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; background: var(--text-inverse); border: none; border-radius: 50%; box-shadow: var(--shadow-md); cursor: pointer; }
+    input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+
+    /* Hue Wheel */
+    .hue-wheel-container { position: relative; width: 280px; height: 280px; margin: 0 auto; border-radius: 50%; overflow: hidden; }
+    .hue-wheel {
+      width: 100%;
+      height: 100%;
+      background: conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+      border-radius: 50%;
+      position: relative;
+    }
+    .hue-wheel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 60%, var(--bg-card) 60%, var(--bg-card) 100%);
+      pointer-events: none;
+    }
+    .saturation-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, white, transparent);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+    }
+    .hue-wheel-container.dragging .saturation-overlay { opacity: 1; }
+    .hue-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: var(--shadow-lg);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: transform var(--transition-fast);
+    }
+    .hue-indicator::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid var(--text-quaternary);
+    }
+
+    /* Color Temperature Slider */
+    .temp-slider-container { margin-top: var(--spacing-lg); }
+    .temp-gradient {
+      height: 36px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(90deg, #ff6b00, #ffaa00, #fff8e7, #a8d0ff, #0066ff);
+      position: relative;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .temp-indicator {
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      width: 4px;
+      background: var(--text-inverse);
+      border-radius: 2px;
+      box-shadow: var(--shadow-md);
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .temp-labels { display: flex; justify-content: space-between; margin-top: var(--spacing-xs); font-size: var(--font-size-xs); color: var(--text-tertiary); }
+    .temp-labels span { font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+
+    /* Quick Actions */
+    .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-sm); margin-top: var(--spacing-lg); }
+    .quick-action {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: var(--spacing-sm);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .quick-action:hover { background: var(--border-primary); transform: translateY(-1px); }
+    .quick-action:active { transform: scale(0.97); }
+    .quick-action svg { width: 24px; height: 24px; }
+    .quick-action.active { background: var(--accent-blue); border-color: var(--accent-blue); color: var(--text-inverse); }
+
+    /* Schedule Item */
+    .schedule-item { padding: var(--spacing-md); }
+    .schedule-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-sm); }
+    .schedule-device { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+    .schedule-times { display: flex; gap: var(--spacing-lg); font-size: var(--font-size-sm); color: var(--text-secondary); }
+    .schedule-time { display: flex; align-items: center; gap: var(--spacing-xs); }
+    .schedule-time-label { font-weight: var(--font-weight-medium); color: var(--text-primary); }
+    .schedule-preview { display: flex; align-items: center; gap: var(--spacing-sm); margin-top: var(--spacing-sm); padding-top: var(--spacing-sm); border-top: 1px solid var(--separator); }
+    .schedule-color { width: 20px; height: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); }
+    .schedule-intensity { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--modal-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn var(--transition-fast);
+    }
+    .modal-overlay.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      width: 100%;
+      max-width: 390px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(100%);
+      animation: slideUp var(--transition-normal) forwards;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    @keyframes slideUp { to { transform: translateY(0); } }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-bottom: 0.5px solid var(--separator);
+      position: sticky;
+      top: 0;
+      background: var(--bg-primary);
+      z-index: 1;
+    }
+    .modal-title { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
+    .modal-close { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text-secondary); font-size: var(--font-size-xl); cursor: pointer; border-radius: var(--radius-md); }
+    .modal-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+    .modal-body { flex: 1; overflow-y: auto; padding: var(--spacing-md) var(--spacing-lg); }
+    .modal-footer { padding: var(--spacing-md) var(--spacing-lg); border-top: 0.5px solid var(--separator); display: flex; gap: var(--spacing-md); justify-content: flex-end; background: var(--bg-primary); position: sticky; bottom: 0; }
+
+    /* Device Card (Control Screen) */
+    .device-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-tertiary));
+      border-radius: var(--radius-xl);
+      margin-bottom: var(--spacing-lg);
+      border: 1px solid var(--border-primary);
+    }
+    .device-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-tertiary);
+      color: var(--accent-blue);
+    }
+    .device-icon svg { width: 28px; height: 28px; }
+    .device-info { flex: 1; }
+    .device-name { font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+    .device-room { font-size: var(--font-size-sm); color: var(--text-secondary); }
+    .device-status { display: flex; align-items: center; gap: var(--spacing-xs); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+
+    /* Power Toggle Large */
+    .power-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+    .power-label { font-size: var(--font-size-lg); font-weight: var(--font-weight-medium); color: var(--text-primary); }
+    .power-toggle .toggle { width: 68px; height: 40px; }
+    .power-toggle .toggle-thumb { width: 36px; height: 36px; }
+    .power-toggle input:checked + .toggle-track + .toggle-thumb { transform: translateX(28px); }
+
+    /* Control Sections */
+    .control-section { margin-bottom: var(--spacing-xl); }
+    .control-section-title { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--spacing-md); padding: 0 var(--spacing-xs); }
+
+    /* Color Picker Value Display */
+    .color-value-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-lg);
+      padding: var(--spacing-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-md);
+    }
+    .color-swatch {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border-primary);
+    }
+    .color-info { text-align: center; }
+    .color-hex { font-family: "SF Mono", monospace; font-size: var(--font-size-sm); color: var(--text-primary); }
+    .color-temp { font-size: var(--font-size-xs); color: var(--text-secondary); }
+
+    /* Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-xl) var(--spacing-lg);
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+    .empty-state svg { width: 64px; height: 64px; margin-bottom: var(--spacing-md); opacity: 0.5; }
+    .empty-state-title { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); color: var(--text-secondary); margin-bottom: var(--spacing-xs); }
+    .empty-state-text { font-size: var(--font-size-base); max-width: 280px; line-height: 1.5; }
+
+    /* Debug Info */
+    .debug-info { font-family: "SF Mono", monospace; font-size: var(--font-size-xs); color: var(--text-tertiary); line-height: 1.6; white-space: pre-wrap; background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius-md); border: 1px solid var(--border-primary); }
+
+    /* Action Sheet */
+    .action-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 390px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      transition: transform var(--transition-normal);
+    }
+    .action-sheet.active { transform: translateX(-50%) translateY(0); }
+    .action-sheet-handle {
+      width: 36px;
+      height: 5px;
+      background: var(--text-quaternary);
+      border-radius: var(--radius-full);
+      margin: var(--spacing-sm) auto;
+    }
+    .action-sheet-title { padding: var(--spacing-xs) var(--spacing-lg) var(--spacing-sm); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text-secondary); text-align: center; }
+    .action-sheet-item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-top: 0.5px solid var(--separator);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .action-sheet-item:hover { background: var(--bg-tertiary); }
+    .action-sheet-item:active { background: var(--border-primary); }
+    .action-sheet-item.destructive { color: var(--accent-red); }
+    .action-sheet-item svg { width: 24px; height: 24px; color: var(--text-secondary); flex-shrink: 0; }
+    .action-sheet-cancel {
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-md);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--accent-blue);
+      text-align: center;
+      cursor: pointer;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom) + var(--spacing-lg));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      align-items: center;
+      pointer-events: none;
+    }
+    .toast {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      background: var(--text-primary);
+      color: var(--text-inverse);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: toastIn var(--transition-normal) forwards, toastOut var(--transition-normal) 2.5s forwards;
+    }
+    @keyframes toastIn { to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(-20px); } }
+
+    /* Loading */
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-primary);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Screen Reader Only */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* High Contrast */
+    @media (prefers-contrast: more) {
+      :root {
+        --border-primary: currentColor;
+        --separator: currentColor;
+      }
+      .btn-primary { border: 2px solid currentColor; }
+      .list-group { border-width: 2px; }
+      .list-item { border-bottom-width: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application">
+    <!-- Status Bar -->
+    <div class="status-bar" role="status" aria-live="polite">
+      <div class="status-bar-left">
+        <span>9:41</span>
+      </div>
+      <div class="status-bar-right">
+        <span class="status-bar-icon" aria-hidden="true">📶</span>
+        <span class="status-bar-icon" aria-hidden="true">🔋</span>
+      </div>
+    </div>
+
+    <!-- Screen: Devices -->
+    <div class="screen active" id="screen-devices" role="main" aria-label="Devices">
+      <nav class="nav-bar" role="navigation" aria-label="Main navigation">
+        <h1 class="nav-title">Devices</h1>
+        <button class="nav-btn icon-only" id="btn-rescan" aria-label="Rescan for devices" title="Rescan">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        </button>
+      </nav>
+      <div class="screen-content">
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Paired Controllers</h2>
+          </div>
+          <div class="list-group" id="devices-list" role="list" aria-label="Paired LED controllers">
+            <div class="list-item" role="listitem" data-device="1" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Living Room Strip</div>
+                <div class="list-item-subtitle">Living Room • 2m RGB+CCT</div>
+              </div>
+              <div class="list-item-meta">
+                <span class="status-dot connected" aria-label="Connected"></span>
+                <div class="color-preview" style="background: #ff6b35;" aria-label="Current color: warm orange"></div>
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" role="listitem" data-device="2" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Bedroom Lamp</div>
+                <div class="list-item-subtitle">Bedroom • RGB+CCT Bulb</div>
+              </div>
+              <div class="list-item-meta">
+                <span class="status-dot connected" aria-label="Connected"></span>
+                <div class="color-preview" style="background: #4a90d9;" aria-label="Current color: soft blue"></div>
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" role="listitem" data-device="3" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Desk Light</div>
+                <div class="list-item-subtitle">Office • RGB+CCT Panel</div>
+              </div>
+              <div class="list-item-meta">
+                <span class="status-dot disconnected" aria-label="Disconnected"></span>
+                <div class="color-preview" style="background: #2c2c2e; border-color: var(--border-primary);" aria-label="Current color: off"></div>
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" role="listitem" data-device="4" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Kitchen Under-Cabinet</div>
+                <div class="list-item-subtitle">Kitchen • 3m RGB+CCT Strip</div>
+              </div>
+              <div class="list-item-meta">
+                <span class="status-dot connecting" aria-label="Connecting"></span>
+                <div class="color-preview" style="background: #ffffff;" aria-label="Current color: warm white"></div>
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" role="listitem" data-device="5" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Outdoor Patio</div>
+                <div class="list-item-subtitle">Patio • RGB+CCT Flood</div>
+              </div>
+              <div class="list-item-meta">
+                <span class="status-dot connected" aria-label="Connected"></span>
+                <div class="color-preview" style="background: #2ecc71;" aria-label="Current color: green"></div>
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <button class="btn btn-primary btn-block" id="btn-add-device">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Add New Device
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen: Control -->
+    <div class="screen" id="screen-control" role="main" aria-label="Control">
+      <nav class="nav-bar" role="navigation" aria-label="Control navigation">
+        <button class="nav-btn icon-only" id="btn-back-control" aria-label="Back to Devices">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+        </button>
+        <h1 class="nav-title" id="control-device-name">Living Room Strip</h1>
+        <button class="nav-btn icon-only" id="btn-device-menu" aria-label="Device options">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>
+        </button>
+      </nav>
+      <div class="screen-content" id="control-content">
+        <!-- Device Header -->
+        <div class="device-header">
+          <div class="device-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.59L4.5 18.75l4.582-4.582a2.25 2.25 0 011.59-.659h5.714a2.25 2.25 0 001.59-.659l4.582-4.582-4.582-4.582a2.25 2.25 0 00-1.59-.659H9.75z" /></svg>
+          </div>
+          <div class="device-info">
+            <div class="device-name" id="control-device-name-full">Living Room Strip</div>
+            <div class="device-room">Living Room</div>
+          </div>
+          <div class="device-status">
+            <span class="status-dot connected" id="control-status-dot" aria-label="Connected"></span>
+            <span id="control-status-text">Connected</span>
+          </div>
+        </div>
+
+        <!-- Power Toggle -->
+        <div class="power-toggle">
+          <span class="power-label">Power</span>
+          <label class="toggle" aria-label="Power toggle">
+            <input type="checkbox" id="control-power-toggle" checked>
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-thumb" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <!-- Current Color Display -->
+        <div class="color-value-display" id="color-display">
+          <div class="color-swatch" id="current-color-swatch" style="background: #ff6b35;"></div>
+          <div class="color-info">
+            <div class="color-hex" id="current-hex">#FF6B35</div>
+            <div class="color-temp" id="current-temp">2700K • 85%</div>
+          </div>
+        </div>
+
+        <!-- Hue/Saturation Wheel -->
+        <div class="control-section">
+          <h3 class="control-section-title">Color</h3>
+          <div class="hue-wheel-container" id="hue-wheel-container" role="application" aria-label="Hue and saturation picker" tabindex="0">
+            <div class="hue-wheel" id="hue-wheel" aria-hidden="true"></div>
+            <div class="saturation-overlay" id="saturation-overlay" aria-hidden="true"></div>
+            <div class="hue-indicator" id="hue-indicator" style="background: #ff6b35;" aria-hidden="true"></div>
+          </div>
+          <div class="slider-container">
+            <div class="slider-label"><span>Saturation</span><span class="slider-value" id="saturation-value">100%</span></div>
+            <input type="range" id="saturation-slider" min="0" max="100" value="100" aria-label="Saturation">
+          </div>
+        </div>
+
+        <!-- Color Temperature Slider -->
+        <div class="control-section">
+          <h3 class="control-section-title">Color Temperature</h3>
+          <div class="temp-slider-container">
+            <div class="temp-gradient" id="temp-gradient" role="slider" aria-label="Color temperature" aria-valuemin="2000" aria-valuemax="6500" aria-valuenow="2700" tabindex="0">
+              <div class="temp-indicator" id="temp-indicator" style="left: 10%;"></div>
+            </div>
+            <div class="temp-labels">
+              <span>Warm <span id="temp-warm">2000K</span></span>
+              <span>Neutral <span id="temp-neutral">4000K</span></span>
+              <span>Cool <span id="temp-cool">6500K</span></span>
+            </div>
+            <div class="slider-container" style="margin-top: var(--spacing-sm);">
+              <div class="slider-label"><span>Temperature</span><span class="slider-value" id="temp-value">2700K</span></div>
+              <input type="range" id="temp-slider" min="2000" max="6500" value="2700" step="50" aria-label="Color temperature in Kelvin">
+            </div>
+          </div>
+        </div>
+
+        <!-- Intensity Slider -->
+        <div class="control-section">
+          <h3 class="control-section-title">Intensity</h3>
+          <div class="slider-container">
+            <div class="slider-label"><span>Brightness</span><span class="slider-value" id="intensity-value">85%</span></div>
+            <input type="range" id="intensity-slider" min="0" max="100" value="85" aria-label="Brightness percentage">
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="control-section">
+          <h3 class="control-section-title">Quick Actions</h3>
+          <div class="quick-actions" role="group" aria-label="Quick color presets">
+            <button class="quick-action" data-preset="warm" aria-label="Warm white preset" title="Warm White (2700K)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              Warm
+            </button>
+            <button class="quick-action" data-preset="neutral" aria-label="Neutral white preset" title="Neutral White (4000K)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              Neutral
+            </button>
+            <button class="quick-action" data-preset="cool" aria-label="Cool white preset" title="Cool White (6500K)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              Cool
+            </button>
+            <button class="quick-action" data-preset="off" aria-label="Turn off" title="Off">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              Off
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen: Schedules -->
+    <div class="screen" id="screen-schedules" role="main" aria-label="Schedules">
+      <nav class="nav-bar" role="navigation" aria-label="Schedules navigation">
+        <h1 class="nav-title">Schedules</h1>
+        <button class="nav-btn" id="btn-add-schedule">Add</button>
+      </nav>
+      <div class="screen-content">
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Living Room Strip</h2>
+          </div>
+          <div class="list-group" id="schedules-list-1" role="list" aria-label="Schedules for Living Room Strip">
+            <div class="list-item schedule-item" role="listitem">
+              <div class="list-item-content" style="flex: 1;">
+                <div class="schedule-header">
+                  <span class="schedule-device">Weekday Schedule</span>
+                  <label class="toggle" aria-label="Enable weekday schedule">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-thumb" aria-hidden="true"></span>
+                  </label>
+                </div>
+                <div class="schedule-times">
+                  <div class="schedule-time"><span class="schedule-time-label">On:</span> 7:00 AM</div>
+                  <div class="schedule-time"><span class="schedule-time-label">Off:</span> 10:00 PM</div>
+                </div>
+                <div class="schedule-preview">
+                  <div class="schedule-color" style="background: #ff6b35;" aria-label="Warm orange"></div>
+                  <span class="schedule-intensity">2700K • 85%</span>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" aria-label="Edit schedule">Edit</button>
+            </div>
+            <div class="list-item schedule-item" role="listitem">
+              <div class="list-item-content" style="flex: 1;">
+                <div class="schedule-header">
+                  <span class="schedule-device">Weekend Schedule</span>
+                  <label class="toggle" aria-label="Enable weekend schedule">
+                    <input type="checkbox">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-thumb" aria-hidden="true"></span>
+                  </label>
+                </div>
+                <div class="schedule-times">
+                  <div class="schedule-time"><span class="schedule-time-label">On:</span> 8:30 AM</div>
+                  <div class="schedule-time"><span class="schedule-time-label">Off:</span> 11:00 PM</div>
+                </div>
+                <div class="schedule-preview">
+                  <div class="schedule-color" style="background: #4a90d9;" aria-label="Soft blue"></div>
+                  <span class="schedule-intensity">4000K • 60%</span>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" aria-label="Edit schedule">Edit</button>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Bedroom Lamp</h2>
+          </div>
+          <div class="list-group" id="schedules-list-2" role="list" aria-label="Schedules for Bedroom Lamp">
+            <div class="list-item schedule-item" role="listitem">
+              <div class="list-item-content" style="flex: 1;">
+                <div class="schedule-header">
+                  <span class="schedule-device">Sleep Schedule</span>
+                  <label class="toggle" aria-label="Enable sleep schedule">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-thumb" aria-hidden="true"></span>
+                  </label>
+                </div>
+                <div class="schedule-times">
+                  <div class="schedule-time"><span class="schedule-time-label">On:</span> 10:00 PM</div>
+                  <div class="schedule-time"><span class="schedule-time-label">Off:</span> 6:30 AM</div>
+                </div>
+                <div class="schedule-preview">
+                  <div class="schedule-color" style="background: #ff6b35;" aria-label="Warm orange"></div>
+                  <span class="schedule-intensity">2200K • 30%</span>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" aria-label="Edit schedule">Edit</button>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Desk Light</h2>
+          </div>
+          <div class="list-group" id="schedules-list-3" role="list" aria-label="Schedules for Desk Light">
+            <div class="empty-state" style="padding: var(--spacing-lg);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+              <div class="empty-state-title">No Schedules</div>
+              <div class="empty-state-text">Add a schedule to automate this device</div>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Kitchen Under-Cabinet</h2>
+          </div>
+          <div class="list-group" id="schedules-list-4" role="list" aria-label="Schedules for Kitchen Under-Cabinet">
+            <div class="empty-state" style="padding: var(--spacing-lg);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+              <div class="empty-state-title">No Schedules</div>
+              <div class="empty-state-text">Add a schedule to automate this device</div>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Outdoor Patio</h2>
+          </div>
+          <div class="list-group" id="schedules-list-5" role="list" aria-label="Schedules for Outdoor Patio">
+            <div class="list-item schedule-item" role="listitem">
+              <div class="list-item-content" style="flex: 1;">
+                <div class="schedule-header">
+                  <span class="schedule-device">Evening On</span>
+                  <label class="toggle" aria-label="Enable evening schedule">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-thumb" aria-hidden="true"></span>
+                  </label>
+                </div>
+                <div class="schedule-times">
+                  <div class="schedule-time"><span class="schedule-time-label">On:</span> 6:00 PM</div>
+                  <div class="schedule-time"><span class="schedule-time-label">Off:</span> 11:00 PM</div>
+                </div>
+                <div class="schedule-preview">
+                  <div class="schedule-color" style="background: #2ecc71;" aria-label="Green"></div>
+                  <span class="schedule-intensity">3000K • 100%</span>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" aria-label="Edit schedule">Edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen: Schedule Editor (Modal) -->
+    <div class="modal-overlay" id="modal-schedule-editor" role="dialog" aria-modal="true" aria-labelledby="schedule-editor-title">
+      <div class="modal">
+        <header class="modal-header">
+          <h2 class="modal-title" id="schedule-editor-title">New Schedule</h2>
+          <button class="modal-close" id="btn-close-schedule-editor" aria-label="Close">✕</button>
+        </header>
+        <div class="modal-body">
+          <form id="schedule-form">
+            <div class="form-group">
+              <label class="form-label" for="schedule-device">Device</label>
+              <select class="form-select" id="schedule-device" required>
+                <option value="">Select a device</option>
+                <option value="1">Living Room Strip</option>
+                <option value="2">Bedroom Lamp</option>
+                <option value="3">Desk Light</option>
+                <option value="4">Kitchen Under-Cabinet</option>
+                <option value="5">Outdoor Patio</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Enabled</label>
+              <label class="toggle" style="width: 60px; height: 36px;" aria-label="Schedule enabled">
+                <input type="checkbox" id="schedule-enabled" checked>
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="toggle-thumb" aria-hidden="true" style="width: 32px; height: 32px;"></span>
+              </label>
+            </div>
+            <fieldset class="form-group">
+              <legend class="form-label">Weekday Schedule (Mon–Fri)</legend>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="weekday-on">On Time</label>
+                  <input type="time" class="form-input" id="weekday-on" value="07:00" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="weekday-off">Off Time</label>
+                  <input type="time" class="form-input" id="weekday-off" value="22:00" required>
+                </div>
+              </div>
+            </fieldset>
+            <fieldset class="form-group">
+              <legend class="form-label">Weekend Schedule (Sat–Sun)</legend>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="weekend-on">On Time</label>
+                  <input type="time" class="form-input" id="weekend-on" value="08:30" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="weekend-off">Off Time</label>
+                  <input type="time" class="form-input" id="weekend-off" value="23:00" required>
+                </div>
+              </div>
+            </fieldset>
+            <div class="form-group">
+              <label class="form-label">Target Color</label>
+              <div class="hue-wheel-container" id="schedule-hue-wheel" style="width: 200px; height: 200px; margin: 0 auto;" role="application" aria-label="Schedule color picker" tabindex="0">
+                <div class="hue-wheel" aria-hidden="true"></div>
+                <div class="saturation-overlay" aria-hidden="true"></div>
+                <div class="hue-indicator" id="schedule-hue-indicator" style="background: #ff6b35;" aria-hidden="true"></div>
+              </div>
+              <div class="slider-container" style="margin-top: var(--spacing-sm);">
+                <div class="slider-label"><span>Saturation</span><span class="slider-value" id="schedule-saturation-value">100%</span></div>
+                <input type="range" id="schedule-saturation-slider" min="0" max="100" value="100" aria-label="Schedule color saturation">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Color Temperature</label>
+              <div class="temp-gradient" id="schedule-temp-gradient" role="slider" aria-label="Schedule color temperature" aria-valuemin="2000" aria-valuemax="6500" aria-valuenow="2700" tabindex="0" style="height: 32px;">
+                <div class="temp-indicator" id="schedule-temp-indicator" style="left: 10%;"></div>
+              </div>
+              <div class="slider-container" style="margin-top: var(--spacing-xs);">
+                <div class="slider-label"><span>Temperature</span><span class="slider-value" id="schedule-temp-value">2700K</span></div>
+                <input type="range" id="schedule-temp-slider" min="2000" max="6500" value="2700" step="50" aria-label="Schedule color temperature">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Intensity</label>
+              <div class="slider-container">
+                <div class="slider-label"><span>Brightness</span><span class="slider-value" id="schedule-intensity-value">85%</span></div>
+                <input type="range" id="schedule-intensity-slider" min="0" max="100" value="85" aria-label="Schedule brightness">
+              </div>
+            </div>
+          </form>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" id="btn-cancel-schedule">Cancel</button>
+          <button class="btn btn-primary" id="btn-save-schedule">Save</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Screen: Settings -->
+    <div class="screen" id="screen-settings" role="main" aria-label="Settings">
+      <nav class="nav-bar" role="navigation" aria-label="Settings navigation">
+        <h1 class="nav-title">Settings</h1>
+      </nav>
+      <div class="screen-content">
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">Devices</h2>
+          </div>
+          <div class="list-group">
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Rescan for Devices</div>
+                <div class="list-item-subtitle">Search for new LED controllers</div>
+              </div>
+              <div class="list-item-meta">
+                <button class="btn btn-primary btn-sm" id="btn-rescan-settings">Scan</button>
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Rename Device</div>
+                <div class="list-item-subtitle">Change device display names</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Delete Device</div>
+                <div class="list-item-subtitle">Remove a paired controller</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">App</h2>
+          </div>
+          <div class="list-group">
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Version</div>
+                <div class="list-item-subtitle">1.0.0 (Build 1)</div>
+              </div>
+            </div>
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Debug Info</div>
+                <div class="list-item-subtitle">View connection logs and diagnostics</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Reset All Data</div>
+                <div class="list-item-subtitle">Clear all devices and schedules</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="list-section">
+          <div class="section-header">
+            <h2 class="section-title">About</h2>
+          </div>
+          <div class="list-group">
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Privacy Policy</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Terms of Service</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+            <div class="list-item" tabindex="0">
+              <div class="list-item-content">
+                <div class="list-item-title">Licenses</div>
+              </div>
+              <div class="list-item-meta">
+                <svg class="list-item-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debug Modal -->
+    <div class="modal-overlay" id="modal-debug" role="dialog" aria-modal="true" aria-labelledby="debug-title">
+      <div class="modal">
+        <header class="modal-header">
+          <h2 class="modal-title" id="debug-title">Debug Information</h2>
+          <button class="modal-close" id="btn-close-debug" aria-label="Close">✕</button>
+        </header>
+        <div class="modal-body">
+          <pre class="debug-info" id="debug-content">Device: Living Room Strip
+ID: 00:1A:2B:3C:4D:5E
+Firmware: 2.1.4
+Status: Connected
+RSSI: -42 dBm
+Last Seen: 2026-11-21 09:41:12
+Color: #FF6B35 (H: 22°, S: 100%, V: 100%)
+CCT: 2700K
+Intensity: 85%
+Uptime: 3d 14h 22m
+
+Device: Bedroom Lamp
+ID: 00:1A:2B:3C:4D:5F
+Firmware: 2.1.4
+Status: Connected
+RSSI: -58 dBm
+Last Seen: 2026-11-21 09:40:45
+Color: #4A90D9 (H: 210°, S: 75%, V: 85%)
+CCT: 4000K
+Intensity: 60%
+Uptime: 1d 6h 33m
+
+Device: Desk Light
+ID: 00:1A:2B:3C:4D:60
+Firmware: 2.0.1
+Status: Disconnected
+Last Seen: 2026-11-20 14:22:10
+
+Device: Kitchen Under-Cabinet
+ID: 00:1A:2B:3C:4D:61
+Firmware: 2.1.4
+Status: Connecting...
+RSSI: -72 dBm
+
+Device: Outdoor Patio
+ID: 00:1A:2B:3C:4D:62
+Firmware: 2.1.4
+Status: Connected
+RSSI: -35 dBm
+Last Seen: 2026-11-21 09:41:08
+Color: #2ECC71 (H: 140°, S: 80%, V: 80%)
+CCT: 3000K
+Intensity: 100%
+Uptime: 5d 2h 11m
+
+App Version: 1.0.0 (Build 1)
+iOS Version: 17.2
+Bluetooth State: Powered On
+Paired Devices: 5
+Active Connections: 3</pre>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-primary btn-block" id="btn-copy-debug">Copy to Clipboard</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Delete Device Action Sheet -->
+    <div class="action-sheet" id="action-sheet-delete" role="dialog" aria-modal="true" aria-labelledby="delete-sheet-title">
+      <div class="action-sheet-handle" aria-hidden="true"></div>
+      <div class="action-sheet-title" id="delete-sheet-title">Delete Device</div>
+      <div class="action-sheet-item" id="action-delete-confirm" data-device="">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+        Delete "<span id="delete-device-name"></span>"
+      </div>
+      <div class="action-sheet-cancel" id="action-cancel-delete">Cancel</div>
+    </div>
+
+    <!-- Rename Device Modal -->
+    <div class="modal-overlay" id="modal-rename" role="dialog" aria-modal="true" aria-labelledby="rename-title">
+      <div class="modal">
+        <header class="modal-header">
+          <h2 class="modal-title" id="rename-title">Rename Device</h2>
+          <button class="modal-close" id="btn-close-rename" aria-label="Close">✕</button>
+        </header>
+        <div class="modal-body">
+          <form id="rename-form">
+            <div class="form-group">
+              <label class="form-label" for="rename-input">New Name</label>
+              <input type="text" class="form-input" id="rename-input" placeholder="Enter device name" maxlength="32" required>
+            </div>
+          </form>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" id="btn-cancel-rename">Cancel</button>
+          <button class="btn btn-primary" id="btn-save-rename">Save</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Rescan Loading Modal -->
+    <div class="modal-overlay" id="modal-rescan" role="dialog" aria-modal="true" aria-labelledby="rescan-title">
+      <div class="modal" style="max-height: 40vh;">
+        <header class="modal-header">
+          <h2 class="modal-title" id="rescan-title">Scanning for Devices</h2>
+        </header>
+        <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--spacing-xl); text-align: center;">
+          <div class="loading-spinner" aria-hidden="true"></div>
+          <p style="margin-top: var(--spacing-lg); color: var(--text-secondary);">Searching for LED controllers...</p>
+          <p style="margin-top: var(--spacing-sm); font-size: var(--font-size-sm); color: var(--text-tertiary);">Make sure your devices are powered on</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Tab Bar -->
+    <nav class="tab-bar" role="tablist" aria-label="Main tabs">
+      <button class="tab-item active" role="tab" aria-selected="true" aria-controls="screen-devices" id="tab-devices" data-screen="devices">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.59L4.5 18.75l4.582-4.582a2.25 2.25 0 011.59-.659h5.714a2.25 2.25 0 001.59-.659l4.582-4.582-4.582-4.582a2.25 2.25 0 00-1.59-.659H9.75z" /></svg>
+        Devices
+      </button>
+      <button class="tab-item" role="tab" aria-selected="false" aria-controls="screen-schedules" id="tab-schedules" data-screen="schedules">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+        Schedules
+      </button>
+      <button class="tab-item" role="tab" aria-selected="false" aria-controls="screen-settings" id="tab-settings" data-screen="settings">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        Settings
+      </button>
+    </nav>
+  </div>
+
+  <script>
+    // ============================================
+    // App State
+    // ============================================
+    const state = {
+      currentScreen: 'devices',
+      currentDevice: 1,
+      devices: [
+        { id: 1, name: 'Living Room Strip', room: 'Living Room', type: '2m RGB+CCT Strip', status: 'connected', color: '#ff6b35', hue: 22, saturation: 100, temperature: 2700, intensity: 85, power: true },
+        { id: 2, name: 'Bedroom Lamp', room: 'Bedroom', type: 'RGB+CCT Bulb', status: 'connected', color: '#4a90d9', hue: 210, saturation: 75, temperature: 4000, intensity: 60, power: true },
+        { id: 3, name: 'Desk Light', room: 'Office', type: 'RGB+CCT Panel', status: 'disconnected', color: '#2c2c2e', hue: 0, saturation: 0, temperature: 4000, intensity: 0, power: false },
+        { id: 4, name: 'Kitchen Under-Cabinet', room: 'Kitchen', type: '3m RGB+CCT Strip', status: 'connecting', color: '#ffffff', hue: 0, saturation: 0, temperature: 4000, intensity: 100, power: true },
+        { id: 5, name: 'Outdoor Patio', room: 'Patio', type: 'RGB+CCT Flood', status: 'connected', color: '#2ecc71', hue: 140, saturation: 80, temperature: 3000, intensity: 100, power: true }
+      ],
+      schedules: [
+        { id: 1, deviceId: 1, name: 'Weekday Schedule', enabled: true, weekdayOn: '07:00', weekdayOff: '22:00', weekendOn: '08:30', weekendOff: '23:00', color: '#ff6b35', temperature: 2700, intensity: 85 },
+        { id: 2, deviceId: 1, name: 'Weekend Schedule', enabled: false, weekdayOn: '07:00', weekdayOff: '22:00', weekendOn: '08:30', weekendOff: '23:00', color: '#4a90d9', temperature: 4000, intensity: 60 },
+        { id: 3, deviceId: 2, name: 'Sleep Schedule', enabled: true, weekdayOn: '22:00', weekdayOff: '06:30', weekendOn: '22:00', weekendOff: '06:30', color: '#ff6b35', temperature: 2200, intensity: 30 },
+        { id: 4, deviceId: 5, name: 'Evening On', enabled: true, weekdayOn: '18:00', weekdayOff: '23:00', weekendOn: '18:00', weekendOff: '23:00', color: '#2ecc71', temperature: 3000, intensity: 100 }
+      ],
+      editingScheduleId: null,
+      hueWheelDragging: false,
+      tempSliderDragging: false
+    };
+
+    // ============================================
+    // DOM Elements
+    // ============================================
+    const screens = {
+      devices: document.getElementById('screen-devices'),
+      control: document.getElementById('screen-control'),
+      schedules: document.getElementById('screen-schedules'),
+      settings: document.getElementById('screen-settings')
+    };
+
+    const tabs = {
+      devices: document.getElementById('tab-devices'),
+      schedules: document.getElementById('tab-schedules'),
+      settings: document.getElementById('tab-settings')
+    };
+
+    // Control screen elements
+    const controlDeviceName = document.getElementById('control-device-name');
+    const controlDeviceNameFull = document.getElementById('control-device-name-full');
+    const controlStatusDot = document.getElementById('control-status-dot');
+    const controlStatusText = document.getElementById('control-status-text');
+    const controlPowerToggle = document.getElementById('control-power-toggle');
+    const currentColorSwatch = document.getElementById('current-color-swatch');
+    const currentHex = document.getElementById('current-hex');
+    const currentTemp = document.getElementById('current-temp');
+    const hueWheelContainer = document.getElementById('hue-wheel-container');
+    const hueWheel = document.getElementById('hue-wheel');
+    const saturationOverlay = document.getElementById('saturation-overlay');
+    const hueIndicator = document.getElementById('hue-indicator');
+    const saturationSlider = document.getElementById('saturation-slider');
+    const saturationValue = document.getElementById('saturation-value');
+    const tempGradient = document.getElementById('temp-gradient');
+    const tempIndicator = document.getElementById('temp-indicator');
+    const tempSlider = document.getElementById('temp-slider');
+    const tempValue = document.getElementById('temp-value');
+    const intensitySlider = document.getElementById('intensity-slider');
+    const intensityValue = document.getElementById('intensity-value');
+    const quickActions = document.querySelectorAll('.quick-action');
+
+    // Schedule editor elements
+    const modalScheduleEditor = document.getElementById('modal-schedule-editor');
+    const scheduleForm = document.getElementById('schedule-form');
+    const scheduleDevice = document.getElementById('schedule-device');
+    const scheduleEnabled = document.getElementById('schedule-enabled');
+    const weekdayOn = document.getElementById('weekday-on');
+    const weekdayOff = document.getElementById('weekday-off');
+    const weekendOn = document.getElementById('weekend-on');
+    const weekendOff = document.getElementById('weekend-off');
+    const scheduleHueWheel = document.getElementById('schedule-hue-wheel');
+    const scheduleHueIndicator = document.getElementById('schedule-hue-indicator');
+    const scheduleSaturationSlider = document.getElementById('schedule-saturation-slider');
+    const scheduleSaturationValue = document.getElementById('schedule-saturation-value');
+    const scheduleTempGradient = document.getElementById('schedule-temp-gradient');
+    const scheduleTempIndicator = document.getElementById('schedule-temp-indicator');
+    const scheduleTempSlider = document.getElementById('schedule-temp-slider');
+    const scheduleTempValue = document.getElementById('schedule-temp-value');
+    const scheduleIntensitySlider = document.getElementById('schedule-intensity-slider');
+    const scheduleIntensityValue = document.getElementById('schedule-intensity-value');
+
+    // Other modals
+    const modalDebug = document.getElementById('modal-debug');
+    const modalRename = document.getElementById('modal-rename');
+    const modalRescan = document.getElementById('modal-rescan');
+    const actionSheetDelete = document.getElementById('action-sheet-delete');
+    const toastContainer = document.getElementById('toast-container');
+
+    // ============================================
+    // Utility Functions
+    // ============================================
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function hsvToHex(h, s, v) {
+      s /= 100; v /= 100;
+      const c = v * s;
+      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+      const m = v - c;
+      let r = 0, g = 0, b = 0;
+      if (h < 60) { r = c; g = x; }
+      else if (h < 120) { r = x; g = c; }
+      else if (h < 180) { g = c; b = x; }
+      else if (h < 240) { g = x; b = c; }
+      else if (h < 300) { r = x; b = c; }
+      else { r = c; b = x; }
+      r = Math.round((r + m) * 255);
+      g = Math.round((g + m) * 255);
+      b = Math.round((b + m) * 255);
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function hexToHsv(hex) {
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0, v = max;
+      const d = max - min;
+      s = max === 0 ? 0 : d / max;
+      if (max !== min) {
+        if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h *= 60;
+      }
+      return { h: Math.round(h), s: Math.round(s * 100), v: Math.round(v * 100) };
+    }
+
+    function tempToPosition(temp) {
+      return ((temp - 2000) / (6500 - 2000)) * 100;
+    }
+
+    function positionToTemp(pos) {
+      return Math.round(2000 + (pos / 100) * (6500 - 2000));
+    }
+
+    function getDevice(id) {
+      return state.devices.find(d => d.id === id);
+    }
+
+    // ============================================
+    // Navigation
+    // ============================================
+    function showScreen(screenName) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      Object.values(tabs).forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      screens[screenName].classList.add('active');
+      tabs[screenName].classList.add('active');
+      tabs[screenName].setAttribute('aria-selected', 'true');
+      state.currentScreen = screenName;
+    }
+
+    // Tab click handlers
+    Object.entries(tabs).forEach(([name, tab]) => {
+      tab.addEventListener('click', () => showScreen(name));
+    });
+
+    // ============================================
+    // Devices Screen
+    // ============================================
+    const devicesList = document.getElementById('devices-list');
+    devicesList.addEventListener('click', (e) => {
+      const item = e.target.closest('.list-item[data-device]');
+      if (item && !e.target.closest('.btn')) {
+        const deviceId = parseInt(item.dataset.device);
+        openControlScreen(deviceId);
+      }
+    });
+    devicesList.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const item = e.target.closest('.list-item[data-device]');
+        if (item) {
+          e.preventDefault();
+          const deviceId = parseInt(item.dataset.device);
+          openControlScreen(deviceId);
+        }
+      }
+    });
+
+    function openControlScreen(deviceId) {
+      state.currentDevice = deviceId;
+      updateControlScreen();
+      showScreen('control');
+    }
+
+    document.getElementById('btn-back-control').addEventListener('click', () => showScreen('devices'));
+    document.getElementById('btn-add-device').addEventListener('click', () => {
+      showToast('Opening device pairing...');
+      showScreen('settings');
+    });
+    document.getElementById('btn-rescan').addEventListener('click', startRescan);
+
+    // ============================================
+    // Control Screen
+    // ============================================
+    function updateControlScreen() {
+      const device = getDevice(state.currentDevice);
+      if (!device) return;
+
+      controlDeviceName.textContent = device.name;
+      controlDeviceNameFull.textContent = device.name;
+      controlStatusDot.className = 'status-dot ' + device.status;
+      controlStatusText.textContent = device.status.charAt(0).toUpperCase() + device.status.slice(1);
+      controlPowerToggle.checked = device.power;
+
+      currentColorSwatch.style.background = device.color;
+      currentHex.textContent = device.color.toUpperCase();
+      currentTemp.textContent = `${device.temperature}K • ${device.intensity}%`;
+
+      // Update hue wheel
+      const angle = (device.hue / 360) * 360;
+      const radius = (device.saturation / 100) * 110; // 110px = wheel radius - indicator radius
+      const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+      const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+      hueIndicator.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      hueIndicator.style.background = device.color;
+      saturationSlider.value = device.saturation;
+      saturationValue.textContent = `${device.saturation}%`;
+
+      // Update temperature slider
+      const tempPos = tempToPosition(device.temperature);
+      tempIndicator.style.left = `${tempPos}%`;
+      tempSlider.value = device.temperature;
+      tempValue.textContent = `${device.temperature}K`;
+
+      // Update intensity
+      intensitySlider.value = device.intensity;
+      intensityValue.textContent = `${device.intensity}%`;
+
+      // Update quick actions
+      quickActions.forEach(btn => btn.classList.remove('active'));
+    }
+
+    // Power toggle
+    controlPowerToggle.addEventListener('change', () => {
+      const device = getDevice(state.currentDevice);
+      device.power = controlPowerToggle.checked;
+      updateControlScreen();
+      showToast(device.power ? 'Device turned on' : 'Device turned off');
+    });
+
+    // Hue wheel interaction
+    function handleHueWheel(e) {
+      const rect = hueWheel.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const maxRadius = rect.width / 2 - 12; // indicator radius
+
+      if (distance > maxRadius) return;
+
+      let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+      if (angle < 0) angle += 360;
+      const saturation = Math.round((distance / maxRadius) * 100);
+      const hue = Math.round(angle);
+
+      const device = getDevice(state.currentDevice);
+      device.hue = hue;
+      device.saturation = saturation;
+      device.color = hsvToHex(hue, saturation, 100);
+
+      updateControlScreen();
+    }
+
+    hueWheelContainer.addEventListener('mousedown', (e) => {
+      state.hueWheelDragging = true;
+      hueWheelContainer.classList.add('dragging');
+      handleHueWheel(e);
+    });
+    hueWheelContainer.addEventListener('touchstart', (e) => {
+      state.hueWheelDragging = true;
+      hueWheelContainer.classList.add('dragging');
+      handleHueWheel(e);
+    }, { passive: true });
+
+    window.addEventListener('mousemove', (e) => {
+      if (state.hueWheelDragging) handleHueWheel(e);
+    });
+    window.addEventListener('touchmove', (e) => {
+      if (state.hueWheelDragging) handleHueWheel(e);
+    }, { passive: true });
+
+    window.addEventListener('mouseup', () => {
+      state.hueWheelDragging = false;
+      hueWheelContainer.classList.remove('dragging');
+    });
+    window.addEventListener('touchend', () => {
+      state.hueWheelDragging = false;
+      hueWheelContainer.classList.remove('dragging');
+    });
+
+    // Saturation slider
+    saturationSlider.addEventListener('input', () => {
+      const device = getDevice(state.currentDevice);
+      device.saturation = parseInt(saturationSlider.value);
+      device.color = hsvToHex(device.hue, device.saturation, 100);
+      updateControlScreen();
+    });
+
+    // Temperature gradient click
+    tempGradient.addEventListener('click', (e) => {
+      const rect = tempGradient.getBoundingClientRect();
+      const pos = ((e.clientX - rect.left) / rect.width) * 100;
+      const temp = positionToTemp(pos);
+      const device = getDevice(state.currentDevice);
+      device.temperature = temp;
+      updateControlScreen();
+    });
+
+    // Temperature slider
+    tempSlider.addEventListener('input', () => {
+      const device = getDevice(state.currentDevice);
+      device.temperature = parseInt(tempSlider.value);
+      updateControlScreen();
+    });
+
+    // Intensity slider
+    intensitySlider.addEventListener('input', () => {
+      const device = getDevice(state.currentDevice);
+      device.intensity = parseInt(intensitySlider.value);
+      updateControlScreen();
+    });
+
+    // Quick actions
+    quickActions.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const device = getDevice(state.currentDevice);
+        const preset = btn.dataset.preset;
+        switch (preset) {
+          case 'warm':
+            device.hue = 40; device.saturation = 15; device.temperature = 2700; device.intensity = 85; device.power = true;
+            break;
+          case 'neutral':
+            device.hue = 0; device.saturation = 0; device.temperature = 4000; device.intensity = 90; device.power = true;
+            break;
+          case 'cool':
+            device.hue = 0; device.saturation = 0; device.temperature = 6500; device.intensity = 100; device.power = true;
+            break;
+          case 'off':
+            device.power = false; device.intensity = 0;
+            break;
+        }
+        device.color = hsvToHex(device.hue, device.saturation, 100);
+        controlPowerToggle.checked = device.power;
+        updateControlScreen();
+        showToast(preset === 'off' ? 'Device turned off' : `${preset.charAt(0).toUpperCase() + preset.slice(1)} white applied`);
+      });
+    });
+
+    // Device menu (action sheet for rename/delete)
+    document.getElementById('btn-device-menu').addEventListener('click', () => {
+      const device = getDevice(state.currentDevice);
+      document.getElementById('delete-device-name').textContent = device.name;
+      document.getElementById('action-delete-confirm').dataset.device = device.id;
+      actionSheetDelete.classList.add('active');
+    });
+
+    document.getElementById('action-cancel-delete').addEventListener('click', () => actionSheetDelete.classList.remove('active'));
+    actionSheetDelete.addEventListener('click', (e) => {
+      if (e.target === actionSheetDelete) actionSheetDelete.classList.remove('active');
+    });
+    document.getElementById('action-delete-confirm').addEventListener('click', () => {
+      const deviceId = parseInt(document.getElementById('action-delete-confirm').dataset.device);
+      state.devices = state.devices.filter(d => d.id !== deviceId);
+      state.schedules = state.schedules.filter(s => s.deviceId !== deviceId);
+      actionSheetDelete.classList.remove('active');
+      showScreen('devices');
+      showToast('Device deleted');
+    });
+
+    // ============================================
+    // Schedules Screen
+    // ============================================
+    document.getElementById('btn-add-schedule').addEventListener('click', () => openScheduleEditor());
+
+    // Schedule edit buttons
+    document.querySelectorAll('#screen-schedules .btn-ghost').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const item = e.target.closest('.schedule-item');
+        if (item) {
+          // Find schedule by device and name
+          const deviceSection = item.closest('.list-section');
+          const deviceTitle = deviceSection.querySelector('.section-title').textContent;
+          const device = state.devices.find(d => d.name === deviceTitle);
+          const scheduleName = item.querySelector('.schedule-device').textContent;
+          const schedule = state.schedules.find(s => s.deviceId === device.id && s.name === scheduleName);
+          if (schedule) openScheduleEditor(schedule);
+        }
+      });
+    });
+
+    // Schedule toggles
+    document.querySelectorAll('#screen-schedules .toggle input').forEach(toggle => {
+      toggle.addEventListener('change', (e) => {
+        const item = e.target.closest('.schedule-item');
+        const deviceSection = item.closest('.list-section');
+        const deviceTitle = deviceSection.querySelector('.section-title').textContent;
+        const device = state.devices.find(d => d.name === deviceTitle);
+        const scheduleName = item.querySelector('.schedule-device').textContent;
+        const schedule = state.schedules.find(s => s.deviceId === device.id && s.name === scheduleName);
+        if (schedule) {
+          schedule.enabled = e.target.checked;
+          showToast(`${schedule.name} ${e.target.checked ? 'enabled' : 'disabled'}`);
+        }
+      });
+    });
+
+    function openScheduleEditor(schedule = null) {
+      state.editingScheduleId = schedule?.id || null;
+      document.getElementById('schedule-editor-title').textContent = schedule ? 'Edit Schedule' : 'New Schedule';
+
+      // Reset form
+      scheduleForm.reset();
+      scheduleDevice.value = schedule?.deviceId || '';
+      scheduleEnabled.checked = schedule?.enabled ?? true;
+      weekdayOn.value = schedule?.weekdayOn || '07:00';
+      weekdayOff.value = schedule?.weekdayOff || '22:00';
+      weekendOn.value = schedule?.weekendOn || '08:30';
+      weekendOff.value = schedule?.weekendOff || '23:00';
+
+      // Set color/temp/intensity
+      const hue = schedule ? hexToHsv(schedule.color).h : 22;
+      const sat = schedule ? hexToHsv(schedule.color).s : 100;
+      const temp = schedule?.temperature || 2700;
+      const intensity = schedule?.intensity || 85;
+
+      scheduleHueIndicator.style.background = schedule?.color || '#ff6b35';
+      const angle = (hue / 360) * 360;
+      const radius = (sat / 100) * 80;
+      const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+      const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+      scheduleHueIndicator.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      scheduleSaturationSlider.value = sat;
+      scheduleSaturationValue.textContent = `${sat}%`;
+
+      const tempPos = tempToPosition(temp);
+      scheduleTempIndicator.style.left = `${tempPos}%`;
+      scheduleTempSlider.value = temp;
+      scheduleTempValue.textContent = `${temp}K`;
+
+      scheduleIntensitySlider.value = intensity;
+      scheduleIntensityValue.textContent = `${intensity}%`;
+
+      modalScheduleEditor.classList.add('active');
+    }
+
+    document.getElementById('btn-close-schedule-editor').addEventListener('click', () => modalScheduleEditor.classList.remove('active'));
+    document.getElementById('btn-cancel-schedule').addEventListener('click', () => modalScheduleEditor.classList.remove('active'));
+    modalScheduleEditor.addEventListener('click', (e) => {
+      if (e.target === modalScheduleEditor) modalScheduleEditor.classList.remove('active');
+    });
+
+    // Schedule hue wheel
+    scheduleHueWheel.addEventListener('mousedown', (e) => {
+      const rect = scheduleHueWheel.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const maxRadius = rect.width / 2 - 12;
+      if (distance > maxRadius) return;
+      let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+      if (angle < 0) angle += 360;
+      const saturation = Math.round((distance / maxRadius) * 100);
+      const hue = Math.round(angle);
+      scheduleHueIndicator.style.background = hsvToHex(hue, saturation, 100);
+      const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+      const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+      scheduleHueIndicator.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      scheduleSaturationSlider.value = saturation;
+      scheduleSaturationValue.textContent = `${saturation}%`;
+    });
+
+    scheduleSaturationSlider.addEventListener('input', () => {
+      const sat = parseInt(scheduleSaturationSlider.value);
+      scheduleSaturationValue.textContent = `${sat}%`;
+      // Update indicator color based on current hue position
+      const transform = scheduleHueIndicator.style.transform;
+      // Just update the color preview
+    });
+
+    // Schedule temp gradient
+    scheduleTempGradient.addEventListener('click', (e) => {
+      const rect = scheduleTempGradient.getBoundingClientRect();
+      const pos = ((e.clientX - rect.left) / rect.width) * 100;
+      const temp = positionToTemp(pos);
+      scheduleTempIndicator.style.left = `${pos}%`;
+      scheduleTempSlider.value = temp;
+      scheduleTempValue.textContent = `${temp}K`;
+    });
+
+    scheduleTempSlider.addEventListener('input', () => {
+      const temp = parseInt(scheduleTempSlider.value);
+      scheduleTempValue.textContent = `${temp}K`;
+      scheduleTempIndicator.style.left = `${tempToPosition(temp)}%`;
+    });
+
+    scheduleIntensitySlider.addEventListener('input', () => {
+      const intensity = parseInt(scheduleIntensitySlider.value);
+      scheduleIntensityValue.textContent = `${intensity}%`;
+    });
+
+    document.getElementById('btn-save-schedule').addEventListener('click', () => {
+      const deviceId = parseInt(scheduleDevice.value);
+      if (!deviceId) { showToast('Please select a device'); return; }
+
+      const device = getDevice(deviceId);
+      const hue = hexToHsv(scheduleHueIndicator.style.background).h;
+      const sat = parseInt(scheduleSaturationSlider.value);
+      const color = hsvToHex(hue, sat, 100);
+      const temp = parseInt(scheduleTempSlider.value);
+      const intensity = parseInt(scheduleIntensitySlider.value);
+
+      const scheduleData = {
+        deviceId,
+        name: `${device.name} Schedule`,
+        enabled: scheduleEnabled.checked,
+        weekdayOn: weekdayOn.value,
+        weekdayOff: weekdayOff.value,
+        weekendOn: weekendOn.value,
+        weekendOff: weekendOff.value,
+        color,
+        temperature: temp,
+        intensity
+      };
+
+      if (state.editingScheduleId) {
+        const idx = state.schedules.findIndex(s => s.id === state.editingScheduleId);
+        if (idx >= 0) state.schedules[idx] = { ...state.schedules[idx], ...scheduleData };
+        showToast('Schedule updated');
+      } else {
+        const newId = Math.max(0, ...state.schedules.map(s => s.id)) + 1;
+        state.schedules.push({ id: newId, ...scheduleData });
+        showToast('Schedule created');
+      }
+
+      modalScheduleEditor.classList.remove('active');
+      // Re-render schedules screen would happen here in real app
+    });
+
+    // ============================================
+    // Settings Screen
+    // ============================================
+    // Rescan button
+    document.getElementById('btn-rescan-settings').addEventListener('click', startRescan);
+
+    function startRescan() {
+      modalRescan.classList.add('active');
+      // Simulate scan
+      setTimeout(() => {
+        modalRescan.classList.remove('active');
+        showToast('Found 5 devices');
+        // Update devices list would happen here
+      }, 2000);
+    }
+
+    // Rename device
+    document.querySelector('#screen-settings .list-item:nth-child(2)').addEventListener('click', (e) => {
+      if (e.target.closest('.btn')) return;
+      const device = getDevice(state.currentDevice);
+      document.getElementById('rename-input').value = device.name;
+      modalRename.classList.add('active');
+    });
+
+    document.getElementById('btn-close-rename').addEventListener('click', () => modalRename.classList.remove('active'));
+    document.getElementById('btn-cancel-rename').addEventListener('click', () => modalRename.classList.remove('active'));
+    modalRename.addEventListener('click', (e) => { if (e.target === modalRename) modalRename.classList.remove('active'); });
+
+    document.getElementById('btn-save-rename').addEventListener('click', () => {
+      const newName = document.getElementById('rename-input').value.trim();
+      if (newName) {
+        const device = getDevice(state.currentDevice);
+        device.name = newName;
+        updateControlScreen();
+        modalRename.classList.remove('active');
+        showToast('Device renamed');
+      }
+    });
+
+    // Delete device from settings
+    document.querySelector('#screen-settings .list-item:nth-child(3)').addEventListener('click', (e) => {
+      if (e.target.closest('.btn')) return;
+      const device = getDevice(state.currentDevice);
+      document.getElementById('delete-device-name').textContent = device.name;
+      document.getElementById('action-delete-confirm').dataset.device = device.id;
+      actionSheetDelete.classList.add('active');
+    });
+
+    // Debug info
+    document.querySelector('#screen-settings .list-item:nth-child(5)').addEventListener('click', (e) => {
+      if (e.target.closest('.btn')) return;
+      modalDebug.classList.add('active');
+    });
+
+    document.getElementById('btn-close-debug').addEventListener('click', () => modalDebug.classList.remove('active'));
+    modalDebug.addEventListener('click', (e) => { if (e.target === modalDebug) modalDebug.classList.remove('active'); });
+
+    document.getElementById('btn-copy-debug').addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('debug-content').textContent);
+      showToast('Debug info copied');
+    });
+
+    // Reset all data
+    document.querySelector('#screen-settings .list-item:nth-child(6)').addEventListener('click', (e) => {
+      if (e.target.closest('.btn')) return;
+      if (confirm('Reset all data? This cannot be undone.')) {
+        state.devices = [];
+        state.schedules = [];
+        showToast('All data reset');
+        showScreen('devices');
+      }
+    });
+
+    // ============================================
+    // Keyboard Navigation
+    // ============================================
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        // Close modals
+        [modalScheduleEditor, modalDebug, modalRename, modalRescan, actionSheetDelete].forEach(m => m.classList.remove('active'));
+      }
+    });
+
+    // ============================================
+    // Initialize
+    // ============================================
+    updateControlScreen();
+    showScreen('devices');
+
+    // Announce screen changes for accessibility
+    const liveRegion = document.createElement('div');
+    liveRegion.setAttribute('role', 'status');
+    liveRegion.setAttribute('aria-live', 'polite');
+    liveRegion.className = 'sr-only';
+    document.body.appendChild(liveRegion);
+
+    function announce(message) {
+      liveRegion.textContent = message;
+    }
+
+    // Override showScreen to announce
+    const originalShowScreen = showScreen;
+    showScreen = function(screenName) {
+      originalShowScreen(screenName);
+      const names = { devices: 'Devices', control: 'Control', schedules: 'Schedules', settings: 'Settings' };
+      announce(`${names[screenName]} screen`);
+    };
+  </script>
+</body>
+</html>

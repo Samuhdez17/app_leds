@@ -1,0 +1,553 @@
+{
+  "prototype": "siri-led-controller-iphone.html",
+  "description": "iPhone app prototype for Siri LED Controller with 5 screens and interactive states",
+  "screens": [
+    {
+      "id": "devices",
+      "name": "Devices Tab",
+      "description": "List of paired LED controllers with connection status and color preview",
+      "url": "siri-led-controller-iphone.html#screen-devices",
+      "states": [
+        {
+          "id": "devices-default",
+          "name": "Default State",
+          "description": "All 5 devices shown with mixed connection statuses",
+          "triggers": ["initial load", "tab selected"],
+          "visual": {
+            "devices": [
+              { "id": 1, "name": "Living Room Strip", "room": "Living Room", "status": "connected", "color": "#ff6b35" },
+              { "id": 2, "name": "Bedroom Lamp", "room": "Bedroom", "status": "connected", "color": "#4a90d9" },
+              { "id": 3, "name": "Desk Light", "room": "Office", "status": "disconnected", "color": "#2c2c2e" },
+              { "id": 4, "name": "Kitchen Under-Cabinet", "room": "Kitchen", "status": "connecting", "color": "#ffffff" },
+              { "id": 5, "name": "Outdoor Patio", "room": "Patio", "status": "connected", "color": "#2ecc71" }
+            ]
+          },
+          "interactions": [
+            { "element": "list-item[data-device='1']", "action": "click/tap/enter", "result": "navigate to control screen for device 1" },
+            { "element": "list-item[data-device='2']", "action": "click/tap/enter", "result": "navigate to control screen for device 2" },
+            { "element": "list-item[data-device='3']", "action": "click/tap/enter", "result": "navigate to control screen for device 3" },
+            { "element": "list-item[data-device='4']", "action": "click/tap/enter", "result": "navigate to control screen for device 4" },
+            { "element": "list-item[data-device='5']", "action": "click/tap/enter", "result": "navigate to control screen for device 5" },
+            { "element": "#btn-rescan", "action": "click", "result": "open rescan modal, simulate scan, show toast" },
+            { "element": "#btn-add-device", "action": "click", "result": "show toast, navigate to settings" },
+            { "element": "#tab-schedules", "action": "click", "result": "navigate to schedules screen" },
+            { "element": "#tab-settings", "action": "click", "result": "navigate to settings screen" }
+          ],
+          "accessibility": {
+            "role": "main",
+            "aria-label": "Devices",
+            "list": "role=list with 5 listitems",
+            "statusDots": "aria-label indicates connected/disconnected/connecting",
+            "colorPreviews": "aria-label describes current color"
+          }
+        },
+        {
+          "id": "devices-rescanning",
+          "name": "Rescanning",
+          "description": "Rescan modal open with loading spinner",
+          "triggers": ["click rescan button in nav bar or settings"],
+          "visual": {
+            "modal": "open",
+            "title": "Scanning for Devices",
+            "spinner": "visible",
+            "text": "Searching for LED controllers..."
+          },
+          "interactions": [
+            { "element": "modal", "action": "auto-close after 2s", "result": "modal closes, toast 'Found 5 devices'" }
+          ],
+          "accessibility": {
+            "role": "dialog",
+            "aria-modal": "true",
+            "aria-labelledby": "rescan-title",
+            "liveRegion": "polite announcement when scan completes"
+          }
+        },
+        {
+          "id": "devices-empty",
+          "name": "Empty State",
+          "description": "No paired devices (after reset)",
+          "triggers": ["reset all data in settings"],
+          "visual": {
+            "devicesList": "empty",
+            "addDeviceButton": "visible"
+          },
+          "interactions": [
+            { "element": "#btn-add-device", "action": "click", "result": "navigate to settings" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "control",
+      "name": "Control Screen",
+      "description": "Per-device RGBCCT color picker with hue/saturation wheel, temperature slider, intensity, power toggle, and quick actions",
+      "url": "siri-led-controller-iphone.html#screen-control",
+      "states": [
+        {
+          "id": "control-default",
+          "name": "Default - Living Room Strip (Connected)",
+          "description": "Device powered on, warm orange color, 2700K, 85% intensity",
+          "triggers": ["tap device 1 from devices list"],
+          "visual": {
+            "deviceName": "Living Room Strip",
+            "deviceRoom": "Living Room",
+            "status": "connected",
+            "power": true,
+            "color": "#ff6b35",
+            "hue": 22,
+            "saturation": 100,
+            "temperature": 2700,
+            "intensity": 85,
+            "hueIndicatorPosition": "22° angle, 100% radius",
+            "tempIndicatorPosition": "10% (warm)",
+            "quickActions": "none active"
+          },
+          "interactions": [
+            { "element": "#btn-back-control", "action": "click", "result": "navigate back to devices" },
+            { "element": "#btn-device-menu", "action": "click", "result": "open delete/rename action sheet" },
+            { "element": "#control-power-toggle", "action": "toggle", "result": "power off, intensity 0%, toast 'Device turned off'" },
+            { "element": "#hue-wheel", "action": "drag", "result": "update hue/saturation, color preview updates live" },
+            { "element": "#saturation-slider", "action": "drag", "result": "update saturation 0-100%" },
+            { "element": "#temp-gradient", "action": "click", "result": "set temperature at click position" },
+            { "element": "#temp-slider", "action": "drag", "result": "update temperature 2000-6500K" },
+            { "element": "#intensity-slider", "action": "drag", "result": "update intensity 0-100%" },
+            { "element": ".quick-action[data-preset='warm']", "action": "click", "result": "set 2700K, 15% saturation, 85% intensity" },
+            { "element": ".quick-action[data-preset='neutral']", "action": "click", "result": "set 4000K, 0% saturation, 90% intensity" },
+            { "element": ".quick-action[data-preset='cool']", "action": "click", "result": "set 6500K, 0% saturation, 100% intensity" },
+            { "element": ".quick-action[data-preset='off']", "action": "click", "result": "power off, intensity 0%" }
+          ],
+          "accessibility": {
+            "role": "main",
+            "aria-label": "Control",
+            "hueWheel": "role=application, aria-label='Hue and saturation picker', keyboard operable",
+            "tempGradient": "role=slider, aria-valuemin=2000, aria-valuemax=6500, keyboard operable",
+            "sliders": "aria-label describes parameter",
+            "powerToggle": "role=switch, aria-checked reflects state",
+            "colorDisplay": "shows hex, temperature, intensity"
+          }
+        },
+        {
+          "id": "control-bedroom",
+          "name": "Bedroom Lamp (Connected)",
+          "description": "Device powered on, soft blue color, 4000K, 60% intensity",
+          "triggers": ["tap device 2 from devices list"],
+          "visual": {
+            "deviceName": "Bedroom Lamp",
+            "deviceRoom": "Bedroom",
+            "status": "connected",
+            "power": true,
+            "color": "#4a90d9",
+            "hue": 210,
+            "saturation": 75,
+            "temperature": 4000,
+            "intensity": 60,
+            "hueIndicatorPosition": "210° angle, 75% radius",
+            "tempIndicatorPosition": "57% (neutral)",
+            "quickActions": "none active"
+          }
+        },
+        {
+          "id": "control-desk",
+          "name": "Desk Light (Disconnected)",
+          "description": "Device offline, powered off, no color",
+          "triggers": ["tap device 3 from devices list"],
+          "visual": {
+            "deviceName": "Desk Light",
+            "deviceRoom": "Office",
+            "status": "disconnected",
+            "power": false,
+            "color": "#2c2c2e",
+            "hue": 0,
+            "saturation": 0,
+            "temperature": 4000,
+            "intensity": 0,
+            "hueIndicatorPosition": "center",
+            "tempIndicatorPosition": "57%",
+            "quickActions": "none active",
+            "controlsDisabled": "visual dimming only, commands would fail"
+          }
+        },
+        {
+          "id": "control-kitchen",
+          "name": "Kitchen Under-Cabinet (Connecting)",
+          "description": "Device connecting, warm white, 100% intensity",
+          "triggers": ["tap device 4 from devices list"],
+          "visual": {
+            "deviceName": "Kitchen Under-Cabinet",
+            "deviceRoom": "Kitchen",
+            "status": "connecting",
+            "power": true,
+            "color": "#ffffff",
+            "hue": 0,
+            "saturation": 0,
+            "temperature": 4000,
+            "intensity": 100,
+            "statusDot": "animated pulse",
+            "quickActions": "none active"
+          }
+        },
+        {
+          "id": "control-patio",
+          "name": "Outdoor Patio (Connected)",
+          "description": "Device powered on, green color, 3000K, 100% intensity",
+          "triggers": ["tap device 5 from devices list"],
+          "visual": {
+            "deviceName": "Outdoor Patio",
+            "deviceRoom": "Patio",
+            "status": "connected",
+            "power": true,
+            "color": "#2ecc71",
+            "hue": 140,
+            "saturation": 80,
+            "temperature": 3000,
+            "intensity": 100,
+            "hueIndicatorPosition": "140° angle, 80% radius",
+            "tempIndicatorPosition": "29% (warm-neutral)",
+            "quickActions": "none active"
+          }
+        },
+        {
+          "id": "control-action-sheet",
+          "name": "Device Menu Open",
+          "description": "Action sheet showing rename/delete options",
+          "triggers": ["tap device menu button (⋯)"],
+          "visual": {
+            "actionSheet": "open, slid up from bottom",
+            "items": ["Delete 'Device Name' (destructive)", "Cancel"]
+          },
+          "interactions": [
+            { "element": "#action-delete-confirm", "action": "click", "result": "delete device, close sheet, navigate to devices, toast 'Device deleted'" },
+            { "element": "#action-cancel-delete", "action": "click", "result": "close sheet" },
+            { "element": "backdrop", "action": "click", "result": "close sheet" },
+            { "element": "Escape key", "action": "press", "result": "close sheet" }
+          ],
+          "accessibility": {
+            "role": "dialog",
+            "aria-modal": "true",
+            "focusTrap": "within sheet",
+            "destructiveAction": "red text, confirmed"
+          }
+        },
+        {
+          "id": "control-rename-modal",
+          "name": "Rename Device Modal",
+          "description": "Modal form to rename current device",
+          "triggers": ["tap rename in device menu or settings"],
+          "visual": {
+            "modal": "open, slid up from bottom",
+            "title": "Rename Device",
+            "input": "prefilled with current name",
+            "buttons": ["Cancel", "Save"]
+          },
+          "interactions": [
+            { "element": "#rename-input", "action": "type", "result": "update name (max 32 chars)" },
+            { "element": "#btn-save-rename", "action": "click", "result": "save name, update UI, close modal, toast 'Device renamed'" },
+            { "element": "#btn-cancel-rename", "action": "click", "result": "close modal" },
+            { "element": "Escape key", "action": "press", "result": "close modal" }
+          ],
+          "accessibility": {
+            "role": "dialog",
+            "aria-modal": "true",
+            "aria-labelledby": "rename-title",
+            "input": "required, maxlength=32"
+          }
+        }
+      ]
+    },
+    {
+      "id": "schedules",
+      "name": "Schedules Tab",
+      "description": "Weekly schedules grouped by device with enable toggles, time ranges, color/intensity preview, and edit actions",
+      "url": "siri-led-controller-iphone.html#screen-schedules",
+      "states": [
+        {
+          "id": "schedules-default",
+          "name": "Default State",
+          "description": "5 device groups, 3 with schedules, 2 empty",
+          "triggers": ["initial load", "tab selected"],
+          "visual": {
+            "groups": [
+              { "device": "Living Room Strip", "schedules": 2 },
+              { "device": "Bedroom Lamp", "schedules": 1 },
+              { "device": "Desk Light", "schedules": 0, "emptyState": true },
+              { "device": "Kitchen Under-Cabinet", "schedules": 0, "emptyState": true },
+              { "device": "Outdoor Patio", "schedules": 1 }
+            ],
+            "scheduleDetails": [
+              { "name": "Weekday Schedule", "device": "Living Room Strip", "enabled": true, "weekdayOn": "07:00", "weekdayOff": "22:00", "weekendOn": "08:30", "weekendOff": "23:00", "color": "#ff6b35", "temp": "2700K", "intensity": "85%" },
+              { "name": "Weekend Schedule", "device": "Living Room Strip", "enabled": false, "weekdayOn": "07:00", "weekdayOff": "22:00", "weekendOn": "08:30", "weekendOff": "23:00", "color": "#4a90d9", "temp": "4000K", "intensity": "60%" },
+              { "name": "Sleep Schedule", "device": "Bedroom Lamp", "enabled": true, "weekdayOn": "22:00", "weekdayOff": "06:30", "weekendOn": "22:00", "weekendOff": "06:30", "color": "#ff6b35", "temp": "2200K", "intensity": "30%" },
+              { "name": "Evening On", "device": "Outdoor Patio", "enabled": true, "weekdayOn": "18:00", "weekdayOff": "23:00", "weekendOn": "18:00", "weekendOff": "23:00", "color": "#2ecc71", "temp": "3000K", "intensity": "100%" }
+            ]
+          },
+          "interactions": [
+            { "element": "#btn-add-schedule", "action": "click", "result": "open schedule editor modal (new)" },
+            { "element": ".schedule-item .toggle input", "action": "toggle", "result": "enable/disable schedule, toast confirmation" },
+            { "element": ".schedule-item .btn-ghost", "action": "click", "result": "open schedule editor modal (edit)" },
+            { "element": "#tab-devices", "action": "click", "result": "navigate to devices" },
+            { "element": "#tab-settings", "action": "click", "result": "navigate to settings" }
+          ],
+          "accessibility": {
+            "role": "main",
+            "aria-label": "Schedules",
+            "list": "role=list per device group",
+            "scheduleItems": "role=listitem with toggle (switch), times, color preview",
+            "editButtons": "aria-label='Edit schedule'",
+            "emptyState": "descriptive text for devices without schedules"
+          }
+        },
+        {
+          "id": "schedules-editor-new",
+          "name": "Schedule Editor - New",
+          "description": "Modal form for creating a new schedule",
+          "triggers": ["tap Add button in schedules tab"],
+          "visual": {
+            "modal": "open",
+            "title": "New Schedule",
+            "form": {
+              "device": "dropdown with 5 devices",
+              "enabled": "toggle on",
+              "weekdayOn": "07:00",
+              "weekdayOff": "22:00",
+              "weekendOn": "08:30",
+              "weekendOff": "23:00",
+              "colorPicker": "hue wheel at 22°, 100% sat (#ff6b35)",
+              "temperature": "2700K (10% position)",
+              "intensity": "85%"
+            }
+          },
+          "interactions": [
+            { "element": "#schedule-device", "action": "select", "result": "choose target device" },
+            { "element": "#schedule-enabled", "action": "toggle", "result": "enable/disable schedule" },
+            { "element": "#weekday-on/off", "action": "time pick", "result": "set weekday times" },
+            { "element": "#weekend-on/off", "action": "time pick", "result": "set weekend times" },
+            { "element": "#schedule-hue-wheel", "action": "click", "result": "set hue/saturation" },
+            { "element": "#schedule-saturation-slider", "action": "drag", "result": "set saturation 0-100%" },
+            { "element": "#schedule-temp-gradient", "action": "click", "result": "set temperature" },
+            { "element": "#schedule-temp-slider", "action": "drag", "result": "set temperature 2000-6500K" },
+            { "element": "#schedule-intensity-slider", "action": "drag", "result": "set intensity 0-100%" },
+            { "element": "#btn-save-schedule", "action": "click", "result": "validate, create schedule, close modal, toast 'Schedule created'" },
+            { "element": "#btn-cancel-schedule", "action": "click", "result": "close modal, discard changes" },
+            { "element": "Escape key", "action": "press", "result": "close modal" }
+          ],
+          "accessibility": {
+            "role": "dialog",
+            "aria-modal": "true",
+            "aria-labelledby": "schedule-editor-title",
+            "form": "semantic fieldsets for weekday/weekend",
+            "timeInputs": "type=time, required",
+            "colorPicker": "keyboard operable hue wheel",
+            "focusTrap": "within modal"
+          }
+        },
+        {
+          "id": "schedules-editor-edit",
+          "name": "Schedule Editor - Edit",
+          "description": "Modal form prefilled with existing schedule data",
+          "triggers": ["tap Edit on any schedule item"],
+          "visual": {
+            "modal": "open",
+            "title": "Edit Schedule",
+            "form": "prefilled with schedule values",
+            "example": "Editing 'Weekday Schedule' for Living Room Strip shows device=Living Room Strip, enabled=true, weekdayOn=07:00, weekdayOff=22:00, weekendOn=08:30, weekendOff=23:00, color=#ff6b35, temp=2700K, intensity=85%"
+          },
+          "interactions": [
+            { "element": "form fields", "action": "modify", "result": "update values" },
+            { "element": "#btn-save-schedule", "action": "click", "result": "update schedule, close modal, toast 'Schedule updated'" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "schedule-editor",
+      "name": "Schedule Editor",
+      "description": "Modal form for creating/editing weekly schedules with device picker, time pickers, color picker, temperature slider, and intensity slider",
+      "url": "siri-led-controller-iphone.html#modal-schedule-editor",
+      "states": [
+        {
+          "id": "editor-new",
+          "name": "New Schedule",
+          "description": "Blank form with defaults",
+          "triggers": ["Add button in Schedules tab"],
+          "visual": { "title": "New Schedule", "device": "empty", "enabled": true, "times": "default weekdays 7am-10pm, weekends 8:30am-11pm", "color": "#ff6b35", "temp": "2700K", "intensity": "85%" }
+        },
+        {
+          "id": "editor-edit",
+          "name": "Edit Existing",
+          "description": "Form prefilled with schedule data",
+          "triggers": ["Edit button on schedule item"],
+          "visual": { "title": "Edit Schedule", "allFields": "prefilled" }
+        },
+        {
+          "id": "editor-validation",
+          "name": "Validation Error",
+          "description": "Device not selected",
+          "triggers": ["Save without device"],
+          "visual": { "toast": "Please select a device", "deviceDropdown": "focused" }
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "name": "Settings Tab",
+      "description": "App settings including device management, version info, debug tools, and legal links",
+      "url": "siri-led-controller-iphone.html#screen-settings",
+      "states": [
+        {
+          "id": "settings-default",
+          "name": "Default State",
+          "description": "Three sections: Devices, App, About",
+          "triggers": ["initial load", "tab selected"],
+          "visual": {
+            "sections": [
+              {
+                "title": "Devices",
+                "items": [
+                  { "title": "Rescan for Devices", "subtitle": "Search for new LED controllers", "action": "Scan button" },
+                  { "title": "Rename Device", "subtitle": "Change device display names", "action": "chevron → modal" },
+                  { "title": "Delete Device", "subtitle": "Remove a paired controller", "action": "chevron → action sheet" }
+                ]
+              },
+              {
+                "title": "App",
+                "items": [
+                  { "title": "Version", "subtitle": "1.0.0 (Build 1)", "action": "none" },
+                  { "title": "Debug Info", "subtitle": "View connection logs and diagnostics", "action": "chevron → modal" },
+                  { "title": "Reset All Data", "subtitle": "Clear all devices and schedules", "action": "chevron → confirm" }
+                ]
+              },
+              {
+                "title": "About",
+                "items": [
+                  { "title": "Privacy Policy", "action": "chevron → external" },
+                  { "title": "Terms of Service", "action": "chevron → external" },
+                  { "title": "Licenses", "action": "chevron → external" }
+                ]
+              }
+            ]
+          },
+          "interactions": [
+            { "element": "#btn-rescan-settings", "action": "click", "result": "open rescan modal, simulate 2s scan, toast 'Found 5 devices'" },
+            { "element": "Rename Device item", "action": "click", "result": "open rename modal for current device" },
+            { "element": "Delete Device item", "action": "click", "result": "open delete action sheet for current device" },
+            { "element": "Debug Info item", "action": "click", "result": "open debug modal with device diagnostics" },
+            { "element": "Reset All Data item", "action": "click", "result": "confirm dialog, if yes clear all data, toast 'All data reset', navigate to devices" },
+            { "element": "#tab-devices", "action": "click", "result": "navigate to devices" },
+            { "element": "#tab-schedules", "action": "click", "result": "navigate to schedules" }
+          ],
+          "accessibility": {
+            "role": "main",
+            "aria-label": "Settings",
+            "list": "role=list per section",
+            "buttons": "accessible names match visible labels"
+          }
+        },
+        {
+          "id": "settings-debug-modal",
+          "name": "Debug Info Modal",
+          "description": "Scrollable diagnostic information for all devices",
+          "triggers": ["tap Debug Info in settings"],
+          "visual": {
+            "modal": "open",
+            "title": "Debug Information",
+            "content": "Monospace text with 5 device diagnostics including MAC, firmware, RSSI, status, color, CCT, intensity, uptime, plus app/Bluetooth info",
+            "footer": "Copy to Clipboard button"
+          },
+          "interactions": [
+            { "element": "#btn-copy-debug", "action": "click", "result": "copy text to clipboard, toast 'Debug info copied'" },
+            { "element": "#btn-close-debug", "action": "click", "result": "close modal" },
+            { "element": "Escape key", "action": "press", "result": "close modal" }
+          ],
+          "accessibility": {
+            "role": "dialog",
+            "aria-modal": "true",
+            "aria-labelledby": "debug-title",
+            "content": "pre element, selectable text"
+          }
+        },
+        {
+          "id": "settings-rescan-modal",
+          "name": "Rescan Modal (from Settings)",
+          "description": "Same as devices screen rescan modal",
+          "triggers": ["tap Scan button in Settings > Devices"],
+          "visual": { "modal": "open", "spinner": "visible", "text": "Searching for LED controllers..." }
+        }
+      ]
+    }
+  ],
+  "globalStates": [
+    {
+      "id": "dark-mode",
+      "name": "Dark Mode",
+      "description": "All screens adapt to prefers-color-scheme: dark",
+      "triggers": ["system dark mode"],
+      "visual": {
+        "background": "#000000",
+        "cards": "#1c1c1e",
+        "text": "#ffffff",
+        "borders": "#38383a",
+        "tabBar": "rgba(0,0,0,0.85) blur",
+        "navBar": "rgba(0,0,0,0.85) blur"
+      }
+    },
+    {
+      "id": "light-mode",
+      "name": "Light Mode",
+      "description": "All screens adapt to prefers-color-scheme: light",
+      "triggers": ["system light mode"],
+      "visual": {
+        "background": "#f2f2f7",
+        "cards": "#ffffff",
+        "text": "#000000",
+        "borders": "#3c3c432e",
+        "tabBar": "rgba(242,242,247,0.85) blur",
+        "navBar": "rgba(242,242,247,0.85) blur"
+      }
+    },
+    {
+      "id": "reduced-motion",
+      "name": "Reduced Motion",
+      "description": "Animations disabled per prefers-reduced-motion",
+      "triggers": ["system reduce motion"],
+      "behavior": "All transitions/animations 0.01ms"
+    },
+    {
+      "id": "high-contrast",
+      "name": "High Contrast",
+      "description": "Borders and focus indicators enhanced per prefers-contrast: more",
+      "triggers": ["system high contrast"],
+      "visual": {
+        "borders": "currentColor (2px)",
+        "focusOutline": "2px solid currentColor",
+        "buttons": "2px solid currentColor border"
+      }
+    }
+  ],
+  "navigationFlow": {
+    "initialScreen": "devices",
+    "tabBar": {
+      "devices": "devices screen",
+      "schedules": "schedules screen",
+      "settings": "settings screen"
+    },
+    "pushNavigation": {
+      "devices → control": "tap device list item",
+      "control → devices": "back button",
+      "schedules → schedule-editor": "Add or Edit button",
+      "schedule-editor → schedules": "Save or Cancel",
+      "settings → debug-modal": "Debug Info",
+      "settings → rename-modal": "Rename Device",
+      "settings → delete-sheet": "Delete Device",
+      "settings → rescan-modal": "Rescan button",
+      "control → delete-sheet": "device menu (⋯)",
+      "control → rename-modal": "device menu or settings"
+    },
+    "modals": [
+      "schedule-editor",
+      "debug",
+      "rename",
+      "rescan",
+      "delete-action-sheet"
+    ]
+  }
+}

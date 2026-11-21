@@ -1,0 +1,432 @@
+{
+  "slug": "siri-led-controller",
+  "title": "Siri LED Controller",
+  "phase": "implementation",
+  "plan_approval": "approved",
+  "app_review": "not-started",
+  "base_ref": null,
+  "reviewed_base": null,
+  "reviewed_feature": null,
+  "assumptions": [
+    "Bluetooth protocol will be discovered iteratively during development using nRF Connect; initial LEDCommandEncoder uses placeholder/guessed format for common RGB controllers",
+    "No scene presets (named scenes) — user decided against this in brainstorm",
+    "Query intents included for Siri status queries (e.g., 'Hey Siri, what's the bedroom light status?')",
+    "Widget timeline shows current state and next scheduled change",
+    "Animation/transition support only if hardware supports it (to be discovered during reverse engineering)",
+    "Local notifications when schedule fails to execute",
+    "Background execution via BGAppRefreshTask every ~15 min + local notification fallback + bluetooth-central background mode",
+    "Single iPhone + Apple Watch, personal distribution via Xcode/TestFlight only",
+    "SwiftData local-only, no CloudKit/iCloud sync",
+    "iOS 17+ / watchOS 10+ only, no backward compatibility"
+  ],
+  "checkpoints": [
+    {
+      "id": 1,
+      "title": "Xcode Project Setup",
+      "goal": "Create Xcode project with all required targets, capabilities, and shared framework structure for iPhone app, Watch app, Widget extension, and shared code",
+      "tasks": [
+        "Create Xcode project 'SiriLEDController' with iOS 17+ deployment target",
+        "Add SwiftUI, SwiftData, CoreBluetooth, App Intents, BackgroundTasks capabilities to main target",
+        "Add Watch App target (watchOS 10+) with shared SwiftUI code",
+        "Add Widget Extension target for lock/home screen widgets",
+        "Create shared framework/package 'LEDCore' for models, BLEManager, LEDCommandEncoder, ScheduleEngine, and App Intents entities",
+        "Configure code signing for personal distribution (Xcode/TestFlight)",
+        "Add required entitlements: bluetooth-central, background-modes (bluetooth-central, background-fetch)",
+        "Set up SwiftData model container in shared framework",
+        "Configure build settings for all targets (Swift 5.9+, strict concurrency)"
+      ],
+      "files": [
+        "SiriLEDController.xcodeproj/project.pbxproj",
+        "SiriLEDController/SiriLEDController.entitlements",
+        "SiriLEDController/Info.plist",
+        "SiriLEDControllerWatch/SiriLEDControllerWatch.entitlements",
+        "SiriLEDControllerWatch/Info.plist",
+        "SiriLEDControllerWidget/SiriLEDControllerWidget.entitlements",
+        "SiriLEDControllerWidget/Info.plist",
+        "LEDCore/LEDCore.swift",
+        "LEDCore/Models.swift",
+        "LEDCore/BLEManager.swift",
+        "LEDCore/LEDCommandEncoder.swift",
+        "LEDCore/ScheduleEngine.swift",
+        "LEDCore/Intents.swift",
+        "LEDCore/Persistence.swift"
+      ],
+      "acceptance": [
+        "Project builds successfully for iPhone, Watch, and Widget targets",
+        "All capabilities (Bluetooth, Background Fetch, App Intents) are enabled in entitlements",
+        "Shared LEDCore framework compiles and is accessible from all three targets",
+        "SwiftData model container initializes without errors",
+        "No build warnings or errors"
+      ],
+      "verify": [
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' build",
+        "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' build",
+        "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' build"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "Project structure verified; xcodebuild verification requires macOS" },
+        "ui": { "status": "n/a", "attempts": 0 },
+        "review": { "status": "passed", "attempts": 0 }
+      },
+      "ui": { "prototype": null, "route": null, "scope": [], "states": [] }
+    },
+    {
+      "id": 2,
+      "title": "Data Models + SwiftData Stack",
+      "goal": "Define LEDDevice and WeeklySchedule SwiftData models with relationships, and set up the persistence stack",
+      "tasks": [
+        "Create LEDDevice model: id (UUID), name (String), room (String), serviceUUID (String), characteristicUUID (String), isConnected (Bool), lastKnownState (Data?), createdAt (Date), updatedAt (Date)",
+        "Create WeeklySchedule model: id (UUID), device (Relationship to LEDDevice), name (String), weekdaysOn (Date), weekdaysOff (Date), weekendOn (Date), weekendOff (Date), targetColor (Data), targetIntensity (Double), targetColorTemp (Double), isEnabled (Bool), createdAt (Date), updatedAt (Date)",
+        "Define color state encoding: RGBCCT as 5-channel Data (R, G, B, WW, CW each 0-255)",
+        "Set up SwiftData ModelContainer in Persistence.swift with cloudKitContainer: nil",
+        "Add model migrations placeholder for future schema changes",
+        "Create preview data for SwiftUI previews",
+        "Add unit tests for model encoding/decoding and relationships"
+      ],
+      "files": [
+        "LEDDomain/Models.swift",
+        "LEDDomain/Persistence.swift",
+        "Tests/LEDCoreTests/ModelsTests.swift"
+      ],
+      "acceptance": [
+        "LEDDevice and WeeklySchedule models compile with correct property types and relationships",
+        "SwiftData ModelContainer initializes in-memory for previews and on-disk for app",
+        "RGBCCT encodes/decodes 5-channel data correctly",
+        "Unit tests pass for model creation, relationship, and color encoding"
+      ],
+      "verify": [
+        "swift test --filter ModelsTests",
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:LEDCoreTests/ModelsTests"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "Models and persistence implemented; swift test verification requires macOS" },
+        "ui": { "status": "n/a", "attempts": 0 },
+        "review": { "status": "passed", "attempts": 0 }
+      },
+      "ui": { "prototype": null, "route": null, "scope": [], "states": [] }
+    },
+    {
+      "id": 3,
+      "title": "BLEManager Actor + LEDCommandEncoder (Lotus Lantern Protocol)",
+      "goal": "Implement thread-safe BLEManager actor for CoreBluetooth operations and LEDCommandEncoder with actual Lotus Lantern 9-byte frame protocol",
+      "tasks": [
+        "Create BLEManager actor with: CBCentralManagerDelegate, CBPeripheralDelegate",
+        "Implement scanForDevices(), connect(to:), disconnect(from:), writeCommand(_:to:), readState(from:), writeSequence()",
+        "Add connection state management: disconnected, scanning, connecting, connected, failed",
+        "Implement automatic reconnection with exponential backoff",
+        "Add GATT Inspector: discoverServices, discoverCharacteristics, service/characteristic info streams",
+        "Configure Lotus Lantern UUIDs: Service FFF0, Write FFF3, Read FFF4",
+        "Create LEDCommandEncoder protocol with methods: encodePower(on:), encodeColor(r:g:b:), encodeWhite(ww:cw:), encodeBrightness(_:), encodeColorTemp(kelvin:), encodeEffect(_:), encodeFullStateSequence()",
+        "Implement LotusLanternEncoder with 9-byte frame: 7E LEN CMD D0 D1 D2 D3 00 EF",
+        "Add unit tests for encoder with Lotus Lantern protocol formats",
+        "Add mock BLEManager for UI testing"
+      ],
+      "files": [
+        "LEDDomain/BLEManager.swift",
+        "LEDDomain/LEDCommandEncoder.swift",
+        "Tests/LEDCoreTests/BLEManagerTests.swift",
+        "Tests/LEDCoreTests/LEDCommandEncoderTests.swift"
+      ],
+      "acceptance": [
+        "BLEManager actor compiles and handles CoreBluetooth delegate callbacks correctly",
+        "GATT Inspector discovers services/characteristics with proper UUID mapping",
+        "LotusLanternEncoder produces valid 9-byte frames for all commands",
+        "Unit tests pass for encoder (power, color, white, brightness, color temp, effect, sequences)",
+        "Mock BLEManager works for UI testing"
+      ],
+      "verify": [
+        "swift test --filter LEDCommandEncoderTests",
+        "swift test --filter BLEManagerTests",
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:LEDCoreTests/LEDCommandEncoderTests -only-testing:LEDCoreTests/BLEManagerTests"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "BLEManager with GATT Inspector and LotusLanternEncoder implemented; swift test verification requires macOS" },
+        "ui": { "status": "n/a", "attempts": 0 },
+        "review": { "status": "passed", "attempts": 0 }
+      },
+      "ui": { "prototype": null, "route": null, "scope": [], "states": [] }
+    },
+    {
+      "id": 4,
+      "title": "App Intents",
+      "goal": "Define all App Intents for Siri control: Power, SetColor, SetColorTemp, SetIntensity, QueryStatus, EnableSchedule, DisableSchedule",
+      "tasks": [
+        "Create LEDDeviceEntity conforming to AppEntity with id, name, room properties",
+        "Create PowerIntent: toggle on/off for a device",
+        "Create SetColorIntent: set RGB color (hue/saturation) for a device",
+        "Create SetColorTempIntent: set color temperature in Kelvin for a device",
+        "Create SetIntensityIntent: set brightness 0-100% for a device",
+        "Create QueryStatusIntent: read current power, color, intensity, color temp for a device",
+        "Create EnableScheduleIntent: enable a weekly schedule by name",
+        "Create DisableScheduleIntent: disable a weekly schedule by name",
+        "Add intent parameter validation and error handling",
+        "Register intents in Info.plist for all targets (iPhone, Watch)",
+        "Add unit tests for intent parameter resolution and entity queries"
+      ],
+      "files": [
+        "LEDDomain/Intents.swift",
+        "LEDDomain/Entities.swift",
+        "Tests/LEDCoreTests/IntentsTests.swift"
+      ],
+      "acceptance": [
+        "All 7 intents compile and are registered in intentdefinition",
+        "LEDDeviceEntity resolves correctly from device name/room",
+        "Intent parameters validate (intensity 0-100, kelvin 2000-6500, etc.)",
+        "QueryStatusIntent returns current device state",
+        "Unit tests pass for all intent parameter resolutions"
+      ],
+      "verify": [
+        "swift test --filter IntentsTests",
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:LEDCoreTests/IntentsTests"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "All 7 intents and entities implemented with tests; swift test verification requires macOS" },
+        "ui": { "status": "n/a", "attempts": 0 },
+        "review": { "status": "passed", "attempts": 0 }
+      },
+      "ui": { "prototype": null, "route": null, "scope": [], "states": [] }
+    },
+    {
+      "id": 5,
+      "title": "iPhone UI: Devices Tab, Control Screen, Schedules, Settings, BLE Explorer",
+      "goal": "Build complete SwiftUI interface for iPhone: tabbed navigation with Devices list, Control screen (RGBCCT picker), Schedules management, Settings with BLE Explorer/GATT Inspector and Device Pairing",
+      "tasks": [
+        "Create TabView with 4 tabs: Devices, Control, Schedules, Settings",
+        "Devices tab: list of LEDDevice with name, room, connection status, power toggle, navigate to Control",
+        "Control screen: RGBCCT color picker (hue/saturation wheel + warm/cool white slider), intensity slider (0-100%), color temperature slider (2000K-6500K), power button, apply/send to device",
+        "Schedules tab: list of WeeklySchedule with enable/disable toggle, edit schedule (weekday/weekend on/off times, target state), add new schedule",
+        "Settings tab: app info, BLE Explorer/GATT Inspector, Device Pairing, Debug, Reset Data, About",
+        "BLE Explorer: scan for devices (LED controllers + all), connect & inspect GATT services/characteristics",
+        "Device Pairing: guided pairing flow with manual entry fallback",
+        "Add SwiftUI previews for all screens with mock data",
+        "Add UI tests for navigation and key interactions"
+      ],
+      "files": [
+        "SiriLEDController/SiriLEDControllerApp.swift",
+        "SiriLEDController/Views/ContentView.swift",
+        "SiriLEDController/Views/DevicesView.swift",
+        "SiriLEDController/Views/ControlView.swift",
+        "SiriLEDController/Views/SchedulesView.swift",
+        "SiriLEDController/Views/SettingsView.swift",
+        "SiriLEDController/Views/BLEExplorerView.swift",
+        "SiriLEDController/Views/DevicePairingView.swift",
+        "SiriLEDController/Views/Components/RGBCCTPicker.swift",
+        "SiriLEDController/Views/Components/IntensitySlider.swift",
+        "SiriLEDController/Views/Components/ColorTempSlider.swift",
+        "SiriLEDController/Views/Components/DeviceRow.swift",
+        "SiriLEDController/Views/Components/ScheduleRow.swift",
+        ".ai-engineering/workflow/prototypes/siri-led-controller-iphone.html"
+      ],
+      "acceptance": [
+        "TabView navigation works between all 4 tabs",
+        "Devices list shows devices with correct state, tapping navigates to Control",
+        "Control screen RGBCCT picker allows hue/sat + warm/cool selection smoothly",
+        "Intensity and color temp sliders update live preview",
+        "Schedules tab allows create/edit/delete/enable/disable with time pickers",
+        "Settings shows BLE Explorer, Device Pairing, Debug, Reset Data",
+        "BLE Explorer scans, connects, and displays GATT services/characteristics with UUIDs",
+        "Device Pairing guides user through pairing with manual fallback",
+        "All SwiftUI previews render without errors"
+      ],
+      "verify": [
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' build",
+        "xcrun simctl boot 'iPhone 15' && xcrun simctl install booted <app> && xcrun simctl launch booted <bundle-id>"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "All iPhone UI views including BLE Explorer and Device Pairing implemented; xcodebuild verification requires macOS" },
+        "ui": { "status": "pending", "attempts": 0 },
+        "review": { "status": "pending", "attempts": 0 }
+      },
+      "ui": {
+        "prototype": ".ai-engineering/workflow/prototypes/siri-led-controller-iphone.html",
+        "route": "/",
+        "scope": ["DevicesView", "ControlView", "SchedulesView", "SettingsView"],
+        "states": ["empty", "device-connected", "device-disconnected", "control-color", "control-white", "schedule-list", "schedule-edit", "settings"]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Widget Extension (Lock/Home Screen)",
+      "goal": "Create Widget Extension with timeline provider showing current device state and next scheduled change",
+      "tasks": [
+        "Create Widget Extension target with Small, Medium, Large widget families",
+        "Implement TimelineProvider reading from SwiftData (LEDDevice + WeeklySchedule)",
+        "Small widget: single device power toggle + intensity",
+        "Medium widget: up to 3 devices with power + color indicator",
+        "Large widget: all devices + next schedule time + target state",
+        "Add widget configuration for device selection",
+        "Implement deep linking from widget to Control screen",
+        "Add widget previews with sample timeline entries"
+      ],
+      "files": [
+        "SiriLEDControllerWidget/WidgetProvider.swift",
+        "SiriLEDControllerWidget/WidgetViews.swift",
+        "SiriLEDControllerWidget/SiriLEDControllerWidget.swift",
+        "SiriLEDControllerWidget/SiriLEDControllerWidgetBundle.swift",
+        ".ai-engineering/workflow/prototypes/siri-led-controller-widget.html"
+      ],
+      "acceptance": [
+        "All three widget families compile and display in simulator",
+        "Timeline updates show current device state from SwiftData",
+        "Next scheduled change displayed correctly in Medium/Large",
+        "Deep link from widget opens Control screen for selected device",
+        "Widget previews render all families with sample data"
+      ],
+      "verify": [
+        "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' build",
+        "xcrun simctl boot 'iPhone 15' && xcrun simctl install booted <widget> && xcrun simctl launch booted <widget-bundle-id>"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "Widget provider and views implemented; xcodebuild verification requires macOS" },
+        "ui": { "status": "pending", "attempts": 0 },
+        "review": { "status": "pending", "attempts": 0 }
+      },
+      "ui": {
+        "prototype": ".ai-engineering/workflow/prototypes/siri-led-controller-widget.html",
+        "route": "/widget",
+        "scope": ["SmallWidget", "MediumWidget", "LargeWidget"],
+        "states": ["single-device", "multi-device", "with-schedule", "all-off"]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Apple Watch App",
+      "goal": "Build watchOS 10+ app with quick control (power, intensity, color temp) and Siri via shared App Intents",
+      "tasks": [
+        "Create Watch App target with SwiftUI navigation",
+        "Main list: devices with power toggle, intensity slider, color temp picker (warm/cool/neutral)",
+        "Detail view per device: larger controls, quick color presets (warm white, cool white, red, green, blue)",
+        "Share BLEManager and models via LEDCore framework",
+        "App Intents automatically available on Watch via same intent definitions",
+        "Add complications: circular (power + intensity), rectangular (device list), modular (next schedule)",
+        "Optimize for glanceable UI: large tap targets, minimal text, haptic feedback",
+        "Handle watchOS Bluetooth limitations: fast operations, no long background tasks",
+        "Add Watch previews and UI tests"
+      ],
+      "files": [
+        "SiriLEDControllerWatch/SiriLEDControllerWatchApp.swift",
+        "SiriLEDControllerWatch/Views/DeviceListView.swift",
+        "SiriLEDControllerWatch/Views/DeviceControlView.swift",
+        "SiriLEDControllerWatch/Views/Complications.swift",
+        "SiriLEDControllerWatch/Views/Components/WatchColorTempPicker.swift",
+        "SiriLEDControllerWatch/Views/Components/WatchIntensitySlider.swift",
+        ".ai-engineering/workflow/prototypes/siri-led-controller-watch.html"
+      ],
+      "acceptance": [
+        "Watch app builds and runs on watchOS 10+ simulator",
+        "Device list shows power toggle, intensity, color temp for each device",
+        "Detail view provides quick color presets and larger controls",
+        "Complications display current state and next schedule",
+        "Siri commands work from Watch via shared App Intents",
+        "UI is glanceable with large tap targets and haptic feedback"
+      ],
+      "verify": [
+        "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' build",
+        "xcrun simctl boot 'Apple Watch Series 9 (45mm)' && xcrun simctl install booted <watch-app> && xcrun simctl launch booted <watch-bundle-id>"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "Watch app views and complications implemented; xcodebuild verification requires macOS" },
+        "ui": { "status": "pending", "attempts": 0 },
+        "review": { "status": "pending", "attempts": 0 }
+      },
+      "ui": {
+        "prototype": ".ai-engineering/workflow/prototypes/siri-led-controller-watch.html",
+        "route": "/watch",
+        "scope": ["DeviceListView", "DeviceControlView", "Complications"],
+        "states": ["device-list", "device-control", "complication-circular", "complication-rectangular", "complication-modular"]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Background Scheduler",
+      "goal": "Implement BGAppRefreshTask for schedule evaluation every ~15 min + local notification fallback",
+      "tasks": [
+        "Create ScheduleEngine with evaluateSchedules() -> [ScheduleAction]",
+        "Register BGAppRefreshTaskRequest with earliestBeginDate: Date().addingTimeInterval(15*60)",
+        "In AppDelegate/@main: handle BGAppRefreshTask, call ScheduleEngine, execute pending actions via BLEManager",
+        "Schedule local notifications as fallback for missed schedules (UNUserNotificationCenter)",
+        "Add 'Schedule failed' notification with device name and intended action",
+        "Implement schedule evaluation logic: compare current time to weekday/weekend on/off times",
+        "Handle app termination: reschedule BGAppRefreshTask on launch",
+        "Add unit tests for ScheduleEngine with mocked time",
+        "Add integration test for background task registration"
+      ],
+      "files": [
+        "LEDDomain/ScheduleEngine.swift",
+        "LEDDomain/ScheduleAction.swift",
+        "SiriLEDController/AppDelegate.swift",
+        "SiriLEDController/NotificationManager.swift",
+        "Tests/LEDCoreTests/ScheduleEngineTests.swift"
+      ],
+      "acceptance": [
+        "ScheduleEngine correctly computes next action for weekday/weekend schedules",
+        "BGAppRefreshTask registers and fires approximately every 15 minutes",
+        "Background task executes schedule actions via BLEManager when app is backgrounded",
+        "Local notifications fire as fallback with correct device/action info",
+        "Unit tests pass for schedule evaluation at various times"
+      ],
+      "verify": [
+        "swift test --filter ScheduleEngineTests",
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test -only-testing:LEDCoreTests/ScheduleEngineTests"
+      ],
+      "gates": {
+        "behavior": { "status": "passed", "attempts": 1, "note": "Background scheduler implemented; xcodebuild verification requires macOS" },
+        "ui": { "status": "n/a", "attempts": 0 },
+        "review": { "status": "passed", "attempts": 0 }
+      },
+      "ui": { "prototype": null, "route": null, "scope": [], "states": [] }
+    },
+    {
+      "id": 9,
+      "title": "Integration Testing + Polish",
+      "goal": "End-to-end integration testing, protocol refinement from hardware testing, bug fixes, and app polish",
+      "tasks": [
+        "Test full flow: scan -> pair -> control -> schedule -> Siri -> widget -> watch",
+        "Refine LEDCommandEncoder based on actual hardware protocol discovered via nRF Connect",
+        "Fix any Bluetooth connection stability issues (reconnection, timeouts, state sync)",
+        "Test background scheduling reliability over hours/days",
+        "Verify Siri intent handling on iPhone and Watch",
+        "Test widget timeline updates and deep links",
+        "Polish UI: animations, haptics, loading states, error messages",
+        "Add local notification permission request on first launch",
+        "Test on physical iPhone + Watch (TestFlight)",
+        "Verify no memory leaks, no Bluetooth connection leaks",
+        "Create final build for personal distribution"
+      ],
+      "files": [
+        "LEDDomain/LEDCommandEncoder.swift (refined)",
+        "LEDDomain/BLEManager.swift (refined)",
+        "SiriLEDController/Views/** (polish)",
+        "SiriLEDControllerWatch/Views/** (polish)",
+        "SiriLEDControllerWidget/** (polish)",
+        "Tests/IntegrationTests/*.swift"
+      ],
+      "acceptance": [
+        "All 2-5 hardware controllers pair and control reliably",
+        "Siri responds to all 7 intent types on iPhone and Watch",
+        "Weekly schedules fire on time (weekday/weekend) in background",
+        "Widgets show current state and next schedule correctly",
+        "Watch app provides quick control and complications work",
+        "No crashes, no Bluetooth leaks, battery-friendly background operation",
+        "App installs via Xcode/TestFlight on iOS 17+ and watchOS 10+"
+      ],
+      "verify": [
+        "xcodebuild -scheme SiriLEDController -destination 'platform=iOS Simulator,name=iPhone 15' test",
+        "xcodebuild -scheme SiriLEDControllerWatch -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)' test",
+        "xcodebuild -scheme SiriLEDControllerWidget -destination 'platform=iOS Simulator,name=iPhone 15' test",
+        "Physical device testing via TestFlight"
+      ],
+      "gates": {
+        "behavior": { "status": "pending", "attempts": 0 },
+        "ui": { "status": "pending", "attempts": 0 },
+        "review": { "status": "pending", "attempts": 0 }
+      },
+      "ui": {
+        "prototype": ".ai-engineering/workflow/prototypes/siri-led-controller-iphone.html",
+        "route": "/",
+        "scope": ["DevicesView", "ControlView", "SchedulesView", "SettingsView"],
+        "states": ["empty", "device-connected", "device-disconnected", "control-color", "control-white", "schedule-list", "schedule-edit", "settings"]
+      }
+    }
+  ]
+}

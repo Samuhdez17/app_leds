@@ -1,0 +1,151 @@
+{
+  "prototype": "001-siri-led-controller-watch.html",
+  "description": "Apple Watch app for Siri LED Controller — watchOS 10 native prototype",
+  "regions": [
+    "device-list",
+    "header",
+    "control-detail",
+    "detail-header",
+    "power-control",
+    "intensity-control",
+    "color-temp-control",
+    "quick-off",
+    "complication-circular",
+    "complication-modular"
+  ],
+  "states": [
+    {
+      "name": "device-list",
+      "description": "Default device list with 5 paired controllers showing name, room, color preview, connection status, power toggle, and navigation chevron",
+      "url": "?state=device-list",
+      "regions": ["device-list", "header"],
+      "data": { "devices": 5, "statuses": ["connected", "connecting", "disconnected"] }
+    },
+    {
+      "name": "device-list-empty",
+      "description": "Empty state — no controllers paired, shows illustration and instruction to add from iPhone",
+      "url": "?state=empty",
+      "regions": ["device-list", "header"],
+      "data": { "devices": 0 }
+    },
+    {
+      "name": "device-list-error",
+      "description": "Error state — failed to load controllers, shows retry button",
+      "url": "?state=error",
+      "regions": ["device-list", "header"],
+      "data": { "error": "connection_failed" }
+    },
+    {
+      "name": "control-detail-powered-on",
+      "description": "Control detail for a powered-on device — large power toggle (on), intensity slider at 75%, color temperature selector (Neutral active), quick Off button enabled",
+      "url": "?state=control-detail",
+      "regions": ["control-detail", "detail-header", "power-control", "intensity-control", "color-temp-control", "quick-off"],
+      "data": { "device": "Living Room", "power": true, "intensity": 75, "temp": "neutral" }
+    },
+    {
+      "name": "control-detail-powered-off",
+      "description": "Control detail for a powered-off device — large power toggle (off), intensity and color temperature dimmed/disabled, quick Off button visible",
+      "url": "?state=control-detail&device=bedroom",
+      "regions": ["control-detail", "detail-header", "power-control", "intensity-control", "color-temp-control", "quick-off"],
+      "data": { "device": "Bedroom", "power": false, "intensity": 50, "temp": "warm" }
+    },
+    {
+      "name": "control-detail-intensity-min",
+      "description": "Intensity slider at 0% (minimum)",
+      "url": "?state=control-detail&intensity=0",
+      "regions": ["intensity-control"],
+      "data": { "intensity": 0 }
+    },
+    {
+      "name": "control-detail-intensity-max",
+      "description": "Intensity slider at 100% (maximum)",
+      "url": "?state=control-detail&intensity=100",
+      "regions": ["intensity-control"],
+      "data": { "intensity": 100 }
+    },
+    {
+      "name": "control-detail-temp-warm",
+      "description": "Color temperature set to Warm (2700K)",
+      "url": "?state=control-detail&temp=warm",
+      "regions": ["color-temp-control"],
+      "data": { "temp": "warm" }
+    },
+    {
+      "name": "control-detail-temp-cool",
+      "description": "Color temperature set to Cool (6500K)",
+      "url": "?state=control-detail&temp=cool",
+      "regions": ["color-temp-control"],
+      "data": { "temp": "cool" }
+    },
+    {
+      "name": "complication-circular-on",
+      "description": "Circular complication (Graphic Bezel) — device color ring animating, power icon lit, 'On' label",
+      "url": "?state=complication-circular",
+      "regions": ["complication-circular"],
+      "data": { "power": true, "color": "#ff6b35" }
+    },
+    {
+      "name": "complication-circular-off",
+      "description": "Circular complication — gray background, power icon dimmed, 'Off' label, no ring animation",
+      "url": "?state=complication-circular&power=off",
+      "regions": ["complication-circular"],
+      "data": { "power": false }
+    },
+    {
+      "name": "complication-modular-on",
+      "description": "Modular complication (Graphic Rectangular) — color swatch, device name, 'On · 75%', power toggle on",
+      "url": "?state=complication-modular",
+      "regions": ["complication-modular"],
+      "data": { "power": true, "intensity": 75, "name": "Living Room" }
+    },
+    {
+      "name": "complication-modular-off",
+      "description": "Modular complication — color swatch, device name, 'Off', power toggle off",
+      "url": "?state=complication-modular&power=off",
+      "regions": ["complication-modular"],
+      "data": { "power": false, "name": "Bedroom" }
+    }
+  ],
+  "interactions": [
+    { "trigger": "tap device row", "from": "device-list", "to": "control-detail", "haptic": "medium" },
+    { "trigger": "tap power toggle (list)", "from": "device-list", "action": "toggle power", "haptic": "light" },
+    { "trigger": "tap large power toggle", "from": "control-detail", "action": "toggle power", "haptic": "medium" },
+    { "trigger": "drag intensity slider", "from": "control-detail", "action": "change intensity 0-100%", "haptic": "light (per step)" },
+    { "trigger": "Digital Crown scroll on slider", "from": "control-detail", "action": "change intensity ±5%", "haptic": "light (per step)" },
+    { "trigger": "tap color temp segment", "from": "control-detail", "action": "change temperature", "haptic": "light" },
+    { "trigger": "tap quick Off", "from": "control-detail", "action": "power off + intensity 0", "haptic": "heavy" },
+    { "trigger": "tap back button", "from": "control-detail", "to": "device-list", "haptic": "light" },
+    { "trigger": "tap modular power toggle", "from": "complication-modular", "action": "toggle power", "haptic": "light" }
+  ],
+  "accessibility": {
+    "semanticElements": true,
+    "ariaLabels": true,
+    "keyboardNavigation": true,
+    "focusVisible": true,
+    "contrastRatio": "WCAG AA compliant",
+    "touchTargetMin": "44px",
+    "roleAttributes": ["list", "listitem", "button", "switch", "slider", "radiogroup", "radio"]
+  },
+  "designTokens": {
+    "colors": {
+      "bgPrimary": "#000000",
+      "bgSecondary": "#1c1c1e",
+      "bgTertiary": "#2c2c2e",
+      "fgPrimary": "#ffffff",
+      "fgSecondary": "#8e8e93",
+      "fgTertiary": "#48484a",
+      "accentBlue": "#007aff",
+      "accentGreen": "#34c759",
+      "accentOrange": "#ff9f0a",
+      "accentRed": "#ff3b30",
+      "accentPurple": "#af52de",
+      "accentPink": "#ff2d92",
+      "border": "#38383a"
+    },
+    "radii": { "sm": "8px", "md": "12px", "lg": "16px", "full": "9999px" },
+    "spacing": { "1": "4px", "2": "8px", "3": "12px", "4": "16px", "5": "20px", "6": "24px" },
+    "fonts": { "display": "SF Pro Display", "text": "SF Pro Text" },
+    "shadows": { "sm": "0 1px 2px rgba(0,0,0,0.3)", "md": "0 4px 12px rgba(0,0,0,0.4)", "lg": "0 8px 24px rgba(0,0,0,0.5)" }
+  },
+  "viewport": { "watchWidth": "410px", "watchHeight": "502px", "responsiveBreakpoint": "430px" }
+}
