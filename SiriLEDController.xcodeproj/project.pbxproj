@@ -288,11 +288,11 @@
 				TargetAttributes = {
 					10000056 = {
 						CreatedOnToolsVersion = 15.0;
-						DevelopmentTeam = "";
+						DevelopmentTeam = "YOUR_TEAM_ID";
 					};
 					10000058 = {
 						CreatedOnToolsVersion = 15.0;
-						DevelopmentTeam = "";
+						DevelopmentTeam = "YOUR_TEAM_ID";
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Bluetooth.Central = {
@@ -308,7 +308,7 @@
 					};
 					10000060 = {
 						CreatedOnToolsVersion = 15.0;
-						DevelopmentTeam = "";
+						DevelopmentTeam = "YOUR_TEAM_ID";
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Bluetooth.Central = {
@@ -321,7 +321,7 @@
 					};
 					10000062 = {
 						CreatedOnToolsVersion = 15.0;
-						DevelopmentTeam = "";
+						DevelopmentTeam = "YOUR_TEAM_ID";
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.AppIntents = {
@@ -510,6 +510,10 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				PRODUCT_NAME = LEDCore;
+				MACH_O_TYPE = staticlib;
+				DEFINES_MODULE = YES;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -570,6 +574,10 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				PRODUCT_NAME = LEDCore;
+				MACH_O_TYPE = staticlib;
+				DEFINES_MODULE = YES;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
